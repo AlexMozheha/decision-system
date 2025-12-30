@@ -1,0 +1,28 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: calculation-service
+
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        service-name: calculation-service
+        register: true
+        prefer-ip-address: true
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        instance-id: calculation-service-8082
+
+logging:
+  level:
+    org.springframework.web: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

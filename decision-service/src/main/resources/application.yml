@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: decision-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/Decision_DB
+    username: postgres
+    password: 54321
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate.format_sql: true
+
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        service-name: decision-service
+        register: true
+        prefer-ip-address: true
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG

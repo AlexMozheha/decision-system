@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Decision Service Calculator</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2, h3 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #eef; }
+        .guide-box { border: 1px solid #007bff; padding: 15px; margin-bottom: 20px; background-color: #e6f2ff; border-radius: 5px; }
+        .factor-header input, .factor-header select { width: 90%; margin-top: 5px; }
+        .alternative-row input { width: 95%; }
+        .score-input { background-color: #fffacd; } 
+        .raw-input { background-color: #f0f8ff; }
+        .factor-detail-item {text-align: center;
+        margin-bottom: 5px;}
+        .factor-detail-item input, .factor-detail-item select {
+        width: 90%; 
+        display: block;
+        margin: 2px auto; 
+}
+    </style>
+    
+</head>
+<body>
+
+    <div class="container">
+        <h2> Система прийняття рішень для оцінки фінансових ризиків підприємства.</h2>
+
+        <div class="guide-box">
+            <h4> Уніфікація Сирих Значень</h4>
+            <p>Усі об'єктивні сирі значення (наприклад, гроші, час) повинні бути приведені до однієї найменшої одиниці для уникнення помилок округлення. Наприклад, якщо ціна вводиться у гривнях та копійках, вказуйте все у копійках (100 грн = 10000 копійок).</p>
+            <h4> Об'єктивні vs. Суб'єктивні Фактори</h4>
+            <p>
+                "OBJECTIVE" (Об'єктивний): Вимірюється фізичними величинами. Ви вводите "Сире Значення" (Raw Value). Поле "Score" буде заблоковано.<br>
+                "SUBJECTIVE" (Суб'єктивний): Оцінюється експертом. Ви вводите "Score" (Бал). Поле "Raw Value" буде заблоковано.
+            </p>
+            <h4> Напрямок Фактора (Зростає?)</h4>
+            <p>
+                Зростає? = true: Більше – краще (наприклад, Якість, Продуктивність). <br>
+                Зростає? = false: Менше – краще (наприклад, Ціна, Час доставки).
+            </p>
+        </div>
+
+        <div class="main-params">
+            <label>Назва Рішення: <input type="text" id="decisionName" value="Select Best Supplier"></label><br><br>
+            <label>Метод: <input type="text" id="method" value="METHOD_WS_RISK" disabled></label>
+            <label>Макс. Бал (Max Score): <input type="number" id="maxScore" value="100" min="1"></label>
+        </div>
+        
+        <table id="decisionTable">
+            <thead>
+                <tr id="factorRow">
+                    <th rowspan="3">Альтернатива / Параметр</th></tr>
+                <tr id="factorDetailRow"></tr>
+                <tr id="valueHeaderRow"></tr>
+            </thead>
+            <tbody id="alternativesBody">
+                </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="100">
+                        <button onclick="addAlternative()">+ Додати Альтернативу</button>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <button onclick="addFactor()">+ Додати Фактор</button>
+        <button onclick="sendDecisionRequest()" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin-top: 20px;">Розрахувати Рішення</button>
+
+        <h3>Результат (Decision Response)</h3>
+        <pre id="resultsDisplay" style="background: #eee; padding: 10px; border-radius: 5px;"></pre>
+    </div>
+
+    <script src="app.js"></script> 
+</body>
+</html>
