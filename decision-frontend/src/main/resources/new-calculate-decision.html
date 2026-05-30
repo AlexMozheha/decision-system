@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Decision Service Calculator</title>
+    <style>
+        * { border-radius: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background-color: #f2f2ef; }
+
+        .navbar {
+            background: #3a3f48;
+            padding: 14px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .navbar-logo {
+        font-size: 16px;
+        font-weight: 500;
+        color: #e8eaed;
+        }
+        .navbar-right { display: flex; align-items: center; gap: 16px; }
+        .user-label { font-size: 14px; color: #9aa3ae; }
+        .user-label strong { color: #e8eaed; }
+        .btn-logout {
+            background: transparent;
+            border: 1.5px solid rgba(255,255,255,0.25);
+            padding: 6px 18px;
+            font-size: 14px;
+            color: #d0d5db;
+            cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.07); }
+
+        .container { background: white; padding: 20px; }
+        h2 { color: #111; margin-top: 16px; }
+
+        .guide-box { border: 2px solid #7a9ab8; padding: 15px; margin-bottom: 20px; background-color: #eef4fa; }
+        .guide-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .guide-header h3 { margin: 0; font-size: 14px; color: #111; }
+        .guide-toggle { background: transparent; border: 1.5px solid #7a9ab8; padding: 3px 12px; font-size: 12px; color: #2a4a6a; cursor: pointer; }
+        .guide-content { margin-top: 12px; font-size: 14px; line-height: 1.7; color: #111; }
+
+        .decision-info-box { border: 2px solid #9a7ab8; padding: 15px; margin-bottom: 20px; background-color: #f4f0fa; }
+        .decision-info-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .decision-info-header h3 { margin: 0; font-size: 14px; color: #111; }
+        .decision-info-toggle { background: transparent; border: 1.5px solid #9a7ab8; padding: 3px 12px; font-size: 12px; color: #4a2a6a; cursor: pointer; }
+        .decision-info-content { margin-top: 12px; font-size: 14px; color: #111; }
+        .info-row { margin-bottom: 8px; }
+        .info-label { font-weight: 600; color: #111; margin-right: 6px; }
+        .info-alt-item { background: #fff; border: 1px solid #c8b8e0; padding: 6px 12px; margin-bottom: 6px; font-size: 13px; color: #111; }
+        .info-comments { background: #fff; border: 1px solid #c8b8e0; padding: 10px 12px; margin-top: 4px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: #111; }
+
+        .main-params { margin-bottom: 16px; font-size: 14px; color: #111; }
+        .main-params label { margin-right: 16px; }
+        .main-params input { border: 1.5px solid #b0c4d8; padding: 5px 8px; font-size: 14px; background: #fff; color: #111; }
+        .main-params input:focus { border-color: #7a9ab8; outline: none; }
+
+        /* Таблиця */
+        .table-wrap { overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 0; table-layout: auto; }
+        th, td { border: 1.5px solid #333; padding: 8px 6px; text-align: center; color: #111; }
+        th { background-color: #dce8f0; color: #111; }
+
+        /* Колонка фактора */
+        .factor-col-header { min-width: 200px; }
+        .factor-col-header input[type="text"] {
+            width: 100%;
+            border: 1px solid #aaa;
+            padding: 4px 6px;
+            font-size: 13px;
+            background: #fff;
+            color: #111;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .factor-weight-row {
+            text-align: center;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+        .factor-weight-row input {
+            width: 100%;
+            border: 1px solid #aaa;
+            padding: 3px 5px;
+            font-size: 13px;
+            background: #fff;
+            color: #111;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* Деталі фактора — підписи зверху по центру */
+        .factor-detail-cell { min-width: 200px; }
+        .factor-detail-item {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #111;
+            padding: 0 4px;
+        }
+        .factor-detail-item label {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 13px;
+            color: #111;
+        }
+        .factor-detail-item select {
+            width: 100%;
+            border: 1px solid #aaa;
+            padding: 3px 6px;
+            font-size: 13px;
+            background: #fff;
+            color: #111;
+            display: block;
+        }
+
+        .score-input  { background-color: #fffacd; border: 1px solid #aaa; width: 100%; padding: 4px; font-size: 13px; color: #111; }
+        .raw-input    { background-color: #f0f8ff; border: 1px solid #aaa; width: 100%; padding: 4px; font-size: 13px; color: #111; }
+
+        /* Кнопки */
+        .bottom-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .btn-add-factor {
+            background: #e9edf2;
+            border: 1.5px solid #7a9ab8;
+            padding: 7px 16px;
+            font-size: 13px;
+            color: #111;
+            cursor: pointer;
+        }
+        .btn-add-factor:hover { background: #dce8f0; }
+
+        .btn-calculate {
+            background: #28a745;
+            border: none;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-calculate:hover { background: #218838; }
+
+        .btn-remove {
+            background: transparent;
+            border: 1px solid #aaa;
+            padding: 2px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 4px;
+            color: #111;
+        }
+        .btn-remove:hover { background: #f5dede; border-color: #c00; color: #900; }
+
+        .alt-name-input, .alt-risk-input {
+            border: 1px solid #aaa;
+            padding: 3px 6px;
+            font-size: 13px;
+            width: 90%;
+            color: #111;
+            background: #fff;
+        }
+
+        /* Кнопка додати альтернативу */
+        .btn-add-alt {
+            background: #e9edf2;
+            border: 1.5px solid #7a9ab8;
+            padding: 7px 16px;
+            font-size: 13px;
+            color: #111;
+            cursor: pointer;
+        }
+        .btn-add-alt:hover { background: #dce8f0; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <span class="navbar-logo">Decision System</span>
+        <div class="navbar-right">
+            <span class="user-label">Адміністратор: <strong id="username">Admin123</strong></span>
+            <button class="btn-logout" onclick="logout()">Вийти</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="guide-box">
+            <div class="guide-header" onclick="toggleGuide()">
+                <h3>Інструкція</h3>
+                <button class="guide-toggle" id="guide-toggle-btn">Сховати</button>
+            </div>
+            <div class="guide-content" id="guide-content">
+                <h4>Уніфікація Сирих Значень</h4>
+                <p>Усі сирі значення повинні бути уніфіковані перед обробкою системою. Наприклад, числові дані одного типу повинні використовувати однаковий формат представлення.</p>
+                <h4>Об'єктивні vs. Суб'єктивні Фактори</h4>
+                <p><b>OBJECTIVE</b>: Вимірюється фізичними величинами. Ви вводите "Raw Value". Поле "Score" буде заблоковано.<br>
+                <b>SUBJECTIVE</b>: Оцінюється експертом. Ви вводите "Score" (від 0 до Max Score). Поле "Raw Value" буде заблоковано.</p>
+                <h4>Напрямок Фактора (Зростає?)</h4>
+                <p><b>true</b>: Більше - краще (Якість, Продуктивність).<br>
+                <b>false</b>: Менше - краще (Ціна, Час доставки).</p>
+            </div>
+        </div>
+
+        <div class="decision-info-box">
+            <div class="decision-info-header" onclick="toggleDecisionInfo()">
+                <h3>Інформація про замовлення інвестора</h3>
+                <button class="decision-info-toggle" id="info-toggle-btn">Сховати</button>
+            </div>
+            <div class="decision-info-content" id="decision-info-content">
+                <div class="info-row"><span class="info-label">Логін інвестора:</span><span id="info-login">User123</span></div>
+                <div class="info-row"><span class="info-label">Email:</span><span id="info-email">user123@example.com</span></div>
+                <div class="info-row"><span class="info-label">Назва рішення:</span><span id="info-decision-name">Select Best Supplier</span></div>
+                <div class="info-row">
+                    <span class="info-label">Альтернативи інвестора:</span>
+                    <div id="info-alts">
+                        <div class="info-alt-item">Supplier A — ризик: 0.20</div>
+                        <div class="info-alt-item">Supplier B — ризик: 0.15</div>
+                        <div class="info-alt-item">Supplier C — ризик: 0.25</div>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Коментарі / побажання:</span>
+                    <div class="info-comments" id="info-comments">Хочу порівняти постачальників за ціною, якістю та швидкістю доставки. Ціна найважливіша (вага 0.5), якість середня (0.3), швидкість менш важлива (0.2).</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-params">
+            <label>Назва Рішення: <input type="text" id="decisionName" value="Select Best Supplier"></label>
+            <label>Метод: <input type="text" id="method" value="METHOD_WS_RISK" disabled></label>
+            <label>Макс. Бал (Max Score): <input type="number" id="maxScore" value="100" min="1" onchange="validateAllScores()"></label>
+        </div>
+
+        <div class="table-wrap">
+            <table id="decisionTable">
+                <thead>
+                    <tr id="factorRow"><th rowspan="3" style="min-width:160px;color:#111;">Альтернатива / Параметр</th></tr>
+                    <tr id="factorDetailRow"></tr>
+                    <tr id="valueHeaderRow"></tr>
+                </thead>
+                <tbody id="alternativesBody"></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="100" style="text-align:left; border:1.5px solid #333;">
+                            <button class="btn-add-alt" onclick="addAlternative()">+ Додати Альтернативу</button>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Кнопки знизу як в оригіналі -->
+        <div class="bottom-actions">
+            <button class="btn-add-factor" onclick="addFactor()">+ Додати Фактор</button>
+            <button class="btn-calculate" onclick="sendDecisionRequest()">Розрахувати Рішення</button>
+        </div>
+    </div>
+
+<script>
+let factors = [
+    { name: 'Price',         unitOfMeasure: 'USD',    type: 'OBJECTIVE',  factorWeight: 0.5, isGrowing: false },
+    { name: 'Quality',       unitOfMeasure: 'points', type: 'OBJECTIVE',  factorWeight: 0.3, isGrowing: true  },
+    { name: 'DeliverySpeed', unitOfMeasure: 'days',   type: 'OBJECTIVE',  factorWeight: 0.2, isGrowing: false }
+];
+
+let alternatives = [
+    { name: 'Supplier A', description: '', riskCoefficient: 0.2,  values: {} },
+    { name: 'Supplier B', description: '', riskCoefficient: 0.15, values: {} },
+    { name: 'Supplier C', description: '', riskCoefficient: 0.25, values: {} }
+];
+
+alternatives[0].values = { 'Price': { rawValue: 1200, score: null }, 'Quality': { rawValue: 8, score: null }, 'DeliverySpeed': { rawValue: 5, score: null } };
+alternatives[1].values = { 'Price': { rawValue: 900,  score: null }, 'Quality': { rawValue: 6, score: null }, 'DeliverySpeed': { rawValue: 7, score: null } };
+alternatives[2].values = { 'Price': { rawValue: 1000, score: null }, 'Quality': { rawValue: 7, score: null }, 'DeliverySpeed': { rawValue: 3, score: null } };
+
+function toggleGuide() {
+    const c = document.getElementById('guide-content');
+    const b = document.getElementById('guide-toggle-btn');
+    const hidden = c.style.display === 'none';
+    c.style.display = hidden ? 'block' : 'none';
+    b.textContent = hidden ? 'Сховати' : 'Показати';
+}
+
+function toggleDecisionInfo() {
+    const c = document.getElementById('decision-info-content');
+    const b = document.getElementById('info-toggle-btn');
+    const hidden = c.style.display === 'none';
+    c.style.display = hidden ? 'block' : 'none';
+    b.textContent = hidden ? 'Сховати' : 'Показати';
+}
+
+function validateScore(input) {
+    const maxScore = parseFloat(document.getElementById('maxScore').value) || 100;
+    let val = parseFloat(input.value);
+    if (isNaN(val)) return;
+    if (val < 0) input.value = 0;
+    if (val > maxScore) input.value = maxScore;
+}
+
+function validateAllScores() {
+    document.querySelectorAll('.score-input:not([disabled])').forEach(validateScore);
+}
+
+function updateFactorInputState(factorIndex) {
+    const el = document.getElementById(`factor-type-${factorIndex}`);
+    if (!el) return;
+    const isObjective = el.value === 'OBJECTIVE';
+    alternatives.forEach((alt, altIndex) => {
+        const rawInput   = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-raw`);
+        const scoreInput = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-score`);
+        if (rawInput && scoreInput) {
+            rawInput.disabled  = !isObjective;
+            rawInput.style.backgroundColor  = isObjective ? '#f0f8ff' : '#eee';
+            scoreInput.disabled = isObjective;
+            scoreInput.style.backgroundColor = isObjective ? '#eee' : '#fffacd';
+            if (isObjective)  scoreInput.value = '';
+            else              rawInput.value   = '';
+        }
+    });
+}
+
+function renderTable() {
+    const factorRow        = document.getElementById('factorRow');
+    const factorDetailRow  = document.getElementById('factorDetailRow');
+    const valueHeaderRow   = document.getElementById('valueHeaderRow');
+    const alternativesBody = document.getElementById('alternativesBody');
+
+    factorRow.innerHTML        = '<th rowspan="3" style="min-width:160px;color:#111;">Альтернатива / Параметр</th>';
+    factorDetailRow.innerHTML  = '';
+    valueHeaderRow.innerHTML   = '';
+    alternativesBody.innerHTML = '';
+
+    factors.forEach((f, fIndex) => {
+        factorRow.innerHTML += `
+            <th colspan="2" class="factor-col-header">
+                <input type="text" id="factor-name-${fIndex}" value="${f.name}" placeholder="Назва Фактора"
+                    onchange="factors[${fIndex}].name = this.value">
+                <div class="factor-weight-row">
+                    Вага:
+                    <input type="number" id="factor-weight-${fIndex}" value="${f.factorWeight}"
+                        step="0.01" min="0" max="1"
+                        onchange="factors[${fIndex}].factorWeight = parseFloat(this.value)">
+                </div>
+            </th>`;
+
+        factorDetailRow.innerHTML += `
+            <td colspan="2" class="factor-detail-cell">
+                <div class="factor-detail-item">
+                    <label>Тип:</label>
+                    <select id="factor-type-${fIndex}"
+                        onchange="factors[${fIndex}].type = this.value; updateFactorInputState(${fIndex})">
+                        <option value="OBJECTIVE"  ${f.type === 'OBJECTIVE'  ? 'selected' : ''}>OBJECTIVE</option>
+                        <option value="SUBJECTIVE" ${f.type === 'SUBJECTIVE' ? 'selected' : ''}>SUBJECTIVE</option>
+                    </select>
+                </div>
+                <div class="factor-detail-item">
+                    <label>Зростає?</label>
+                    <select onchange="factors[${fIndex}].isGrowing = (this.value === 'true')">
+                        <option value="true"  ${f.isGrowing  ? 'selected' : ''}>Так (більше краще)</option>
+                        <option value="false" ${!f.isGrowing ? 'selected' : ''}>Ні (менше краще)</option>
+                    </select>
+                </div>
+                <button class="btn-remove" onclick="removeFactor(${fIndex})">X</button>
+            </td>`;
+
+        valueHeaderRow.innerHTML += '<th style="color:#111;">Raw Value</th><th style="color:#111;">Score</th>';
+    });
+
+    alternatives.forEach((alt, altIndex) => {
+        let row = `<tr id="alternative-${altIndex}" class="alternative-row">
+            <td>
+                Назва:<br><input class="alt-name-input" type="text" value="${alt.name}"
+                    onchange="alternatives[${altIndex}].name = this.value"><br>
+                Ризик:<br><input class="alt-risk-input" type="number" value="${alt.riskCoefficient}"
+                    step="0.01" min="0" max="1"
+                    onchange="alternatives[${altIndex}].riskCoefficient = parseFloat(this.value)">
+                <button class="btn-remove" onclick="removeAlternative(${altIndex})">X</button>
+            </td>`;
+
+        factors.forEach((f, fIndex) => {
+            const evalData    = alt.values[f.name] || { rawValue: '', score: '' };
+            const isObjective = f.type === 'OBJECTIVE';
+            const rawValue    = isObjective ? (evalData.rawValue ?? '') : '';
+            const scoreValue  = !isObjective ? (evalData.score ?? '') : '';
+
+            row += `
+                <td><input type="number" class="raw-input"
+                    id="alt-${altIndex}-factor-${fIndex}-raw"
+                    value="${rawValue}"
+                    ${!isObjective ? 'disabled' : ''}
+                    style="background-color:${!isObjective ? '#eee' : '#f0f8ff'}"
+                    onchange="updateAlternativeValue(${altIndex}, '${f.name}', 'rawValue', parseFloat(this.value))"></td>
+                <td><input type="number" class="score-input"
+                    id="alt-${altIndex}-factor-${fIndex}-score"
+                    value="${scoreValue}" min="0"
+                    ${isObjective ? 'disabled' : ''}
+                    style="background-color:${isObjective ? '#eee' : '#fffacd'}"
+                    onchange="validateScore(this); updateAlternativeValue(${altIndex}, '${f.name}', 'score', parseFloat(this.value))"></td>`;
+        });
+
+        row += '</tr>';
+        alternativesBody.innerHTML += row;
+    });
+
+    factors.forEach((_, fIndex) => updateFactorInputState(fIndex));
+}
+
+function addFactor() {
+    const newName = `Factor ${factors.length + 1}`;
+    factors.push({ name: newName, unitOfMeasure: 'N/A', type: 'OBJECTIVE', factorWeight: 0.1, isGrowing: true });
+    alternatives.forEach(alt => { alt.values[newName] = { rawValue: 0, score: null }; });
+    renderTable();
+}
+
+function removeFactor(index) {
+    const factorName = factors[index].name;
+    factors.splice(index, 1);
+    alternatives.forEach(alt => { delete alt.values[factorName]; });
+    renderTable();
+}
+
+function addAlternative() {
+    let newValues = {};
+    factors.forEach(f => { newValues[f.name] = { rawValue: null, score: null }; });
+    alternatives.push({ name: `Alternative ${alternatives.length + 1}`, description: '', riskCoefficient: 0.0, values: newValues });
+    renderTable();
+}
+
+function removeAlternative(index) {
+    alternatives.splice(index, 1);
+    renderTable();
+}
+
+function updateAlternativeValue(altIndex, factorName, type, value) {
+    if (!alternatives[altIndex].values[factorName]) {
+        alternatives[altIndex].values[factorName] = { rawValue: null, score: null };
+    }
+    alternatives[altIndex].values[factorName][type] = value;
+}
+
+function buildRequestPayload() {
+    return {
+        decisionName: document.getElementById('decisionName').value,
+        method:       document.getElementById('method').value,
+        maxScore:     parseFloat(document.getElementById('maxScore').value),
+        factorParams: factors.map(f => ({
+            name: f.name, unitOfMeasure: f.unitOfMeasure, type: f.type,
+            description: '', factorWeight: f.factorWeight, isGrowing: f.isGrowing
+        })),
+        alternatives: alternatives.map(alt => ({
+            name: alt.name, description: alt.description, riskCoefficient: alt.riskCoefficient,
+            values: factors.map(f => ({
+                factorName: f.name,
+                rawValue: f.type === 'OBJECTIVE'  ? (alt.values[f.name]?.rawValue ?? null) : null,
+                score:    f.type === 'SUBJECTIVE' ? (alt.values[f.name]?.score    ?? null) : null
+            }))
+        }))
+    };
+}
+
+async function sendDecisionRequest() {
+    const payload = buildRequestPayload();
+    const ENDPOINT = 'http://localhost:8081/api/decisions/make-decision';
+    try {
+        const response = await fetch(ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            alert(`Помилка ${response.status}: ${JSON.stringify(data)}`);
+        } else {
+            sessionStorage.setItem('decisionResult', JSON.stringify(data));
+            window.location.href = 'admin-decision.html';
+        }
+    } catch (error) {
+        alert(`Помилка мережі: ${error.message}`);
+    }
+}
+
+function logout() {
+    // TODO: localStorage.removeItem('token');
+    window.location.href = 'index.html';
+}
+
+window.onload = renderTable;
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decision System — Нове рішення</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f2f2ef;
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background: #3a3f48;
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .navbar-logo {
+      font-size: 16px;
+      font-weight: 500;
+      color: #e8eaed;
+    }
+    .navbar-right { display: flex; align-items: center; gap: 16px; }
+    .user-label { font-size: 14px; color: #9aa3ae; }
+    .user-label strong { color: #e8eaed; }
+    .btn-logout {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      padding: 6px 18px;
+      font-size: 14px;
+      color: #d0d5db;
+      cursor: pointer;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.07); }
+
+    .main {
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .left-col { display: flex; flex-direction: column; gap: 14px; }
+
+    .name-input {
+      width: 100%;
+      background: #fff;
+      border: 2px solid #b0c4d8;
+      padding: 13px 18px;
+      font-size: 15px;
+      color: #1a1a1a;
+      outline: none;
+    }
+    .name-input:focus { border-color: #7a9ab8; }
+    .name-input::placeholder { color: #bbb; }
+
+    .window { border: 2.5px solid; overflow: hidden; }
+    .window-left  { border-color: #7a9ab8; }
+    .window-right { border-color: #7a9a7a; }
+
+    .window-titlebar {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .window-left  .window-titlebar { background: #c8d8e8; color: #2a4a6a; border-bottom: 2px solid #7a9ab8; }
+    .window-right .window-titlebar { background: #ccd8cc; color: #2a4a2a; border-bottom: 2px solid #7a9a7a; }
+
+    .window-body { height: 320px; overflow-y: auto; padding: 14px; }
+    .window-left  .window-body { background: #eef4fa; }
+    .window-right .window-body { background: #f0f5f0; }
+
+    .alt-item {
+      background: #fff;
+      border: 1.5px solid #c8d8e8;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .alt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .alt-label { font-size: 12px; color: #888; }
+    .btn-remove {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #bbb;
+      padding: 2px 4px;
+      line-height: 1;
+    }
+    .btn-remove:hover { background: #f5dede; color: #8a3a3a; }
+
+    .alt-fields { display: flex; align-items: center; gap: 10px; }
+    .alt-name-input {
+      flex: 1;
+      border: 1.5px solid #d0d8e0;
+      padding: 7px 10px;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fafafa;
+      outline: none;
+    }
+    .alt-name-input:focus { border-color: #7a9ab8; background: #fff; }
+
+    .risk-label { font-size: 12px; color: #888; white-space: nowrap; }
+    .risk-input {
+      width: 64px;
+      border: 1.5px solid #d0d8e0;
+      padding: 7px 8px;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fafafa;
+      outline: none;
+      text-align: center;
+    }
+    .risk-input:focus { border-color: #7a9ab8; background: #fff; }
+
+    .btn-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: transparent;
+      border: 1.5px dashed #7a9ab8;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: #4a6a90;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .btn-add:hover { background: #e0ecf8; }
+
+    .comments-textarea {
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: transparent;
+      resize: none;
+      font-family: inherit;
+      line-height: 1.7;
+    }
+
+    .right-col { display: flex; flex-direction: column; gap: 14px; }
+
+    .btn-submit {
+      width: 100%;
+      background: #e5e8e4;
+      border: 2px solid #9aaa9a;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #3a4a3a;
+      cursor: pointer;
+    }
+    .btn-submit:hover { background: #d8ddd6; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <!-- TODO: підставити ім'я з JWT -->
+     <span class="navbar-logo">Decision System</span>
+    <div class="navbar-right">
+      <span class="user-label">Інвестор: <strong id="username">User123</strong></span>
+      <button class="btn-logout" onclick="logout()">Вийти</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="left-col">
+      <!-- TODO: значення відправляється на POST /api/decisions -->
+      <input class="name-input" id="decision-name" type="text" placeholder="Назва нового рішення" />
+
+      <div class="window window-left">
+        <div class="window-titlebar">
+          <i class="ti ti-list" style="font-size:15px" aria-hidden="true"></i>
+          Альтернативи
+        </div>
+        <div class="window-body">
+          <div id="alt-list"></div>
+          <button class="btn-add" onclick="addAlt()">
+            <i class="ti ti-plus" style="font-size:15px" aria-hidden="true"></i>
+            Додати альтернативу
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="window window-right">
+        <div class="window-titlebar">
+          <i class="ti ti-message" style="font-size:15px" aria-hidden="true"></i>
+          Коментарі
+        </div>
+        <div class="window-body">
+          <textarea class="comments-textarea" id="comments" placeholder="Введіть коментар..."></textarea>
+        </div>
+      </div>
+      <!-- TODO: POST /api/decisions зі статусом DRAFT -->
+      <button class="btn-submit" onclick="saveDraft()">Зберегти як чернетку</button>
+    </div>
+  </main>
+
+  <script>
+    let counter = 0;
+
+    function createAltItem(id) {
+      const div = document.createElement('div');
+      div.className = 'alt-item';
+      div.setAttribute('data-id', id);
+      div.innerHTML = `
+        <div class="alt-header">
+          <span class="alt-label">Альтернатива ${id}</span>
+          <button class="btn-remove" onclick="removeAlt(${id})" title="Видалити">
+            <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="alt-fields">
+          <input class="alt-name-input" type="text" placeholder="Назва альтернативи" />
+          <span class="risk-label">Ризик:</span>
+          <input class="risk-input" type="number" min="1" max="100" placeholder="1–100" />
+        </div>
+      `;
+      return div;
+    }
+
+    function addAlt() {
+      counter++;
+      const list = document.getElementById('alt-list');
+      list.appendChild(createAltItem(counter));
+      list.parentElement.scrollTop = list.parentElement.scrollHeight;
+    }
+
+    function removeAlt(id) {
+      const el = document.querySelector('[data-id="' + id + '"]');
+      if (el) el.remove();
+    }
+
+    function saveDraft() {
+      const name = document.getElementById('decision-name').value.trim();
+      const comments = document.getElementById('comments').value.trim();
+
+      const alternatives = Array.from(document.querySelectorAll('.alt-item')).map(item => ({
+        name: item.querySelector('.alt-name-input').value.trim(),
+        risk: parseInt(item.querySelector('.risk-input').value) || null
+      }));
+
+      // TODO: надіслати на бек
+      // const token = localStorage.getItem('token');
+      // fetch('/api/decisions', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      //   body: JSON.stringify({ name, comments, alternatives, status: 'DRAFT' })
+      // }).then(() => window.location.href = 'investor-dashboard.html');
+
+      console.log({ name, comments, alternatives, status: 'DRAFT' });
+    }
+
+    function logout() {
+      // TODO: localStorage.removeItem('token');
+      window.location.href = 'index.html';
+    }
+
+    // Стартуємо з двома альтернативами
+    addAlt();
+    addAlt();
+  </script>
+
+</body>
+</html>

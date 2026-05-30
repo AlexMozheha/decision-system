@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "logo":       "Decision Support System",
+    "login":      "Вхід",
+    "register":   "Реєстрація",
+    "logout":     "Вийти",
+    "role_pm":    "Інвестор",
+    "role_admin": "Адмін"
+  },
+  "login_form": {
+    "login":      "Логін",
+    "password":   "Пароль",
+    "submit":     "Підтвердити"
+  },
+  "register_form": {
+    "login":      "Логін",
+    "email":      "Email",
+    "password":   "Пароль",
+    "repeat":     "Повтор пароля",
+    "submit":     "Зареєструватись"
+  },
+  "investor_dashboard": {
+    "create_btn":    "Створити новий сценарій оцінювання",
+    "section_title": "Мої сценарії оцінювання",
+    "search_placeholder": "Пошук за назвою...",
+    "empty":         "Сценаріїв оцінювання не знайдено",
+    "date_created":  "Створено",
+    "date_calc":     "Розраховано"
+  },
+  "admin_dashboard": {
+    "section_title":   "Сценарії оцінювання",
+    "search_placeholder": "Назва сценарію або логін інвестора...",
+    "empty":           "Сценаріїв за вибраними критеріями не знайдено",
+    "results_count":   "Показано",
+    "filter_all":      "Всі",
+    "filter_label":    "Фільтр",
+    "date_created":    "Створено",
+    "date_calc":       "Розраховано",
+    "titles": {
+      "ALL":                   "Всі сценарії оцінювання",
+      "READY_FOR_CALCULATION": "Очікують розрахунку",
+      "CALCULATING":           "Розраховуються",
+      "CALCULATED":            "Розраховано",
+      "CALCULATION_FAILED":    "Помилка розрахунку",
+      "DRAFT":                 "Чернетки"
+    }
+  },
+  "statuses": {
+    "DRAFT":                 "Чернетка",
+    "READY_FOR_CALCULATION": "Очікують розрахунку",
+    "CALCULATING":           "Розраховується",
+    "CALCULATED":            "Розраховано",
+    "CALCULATION_FAILED":    "Помилка"
+  },
+  "results": {
+    "title":          "Результати",
+    "recommended":    "Рекомендована альтернатива",
+    "reco_section":   "Рекомендації",
+    "chart_radar":    "Порівняння по факторах (Radar)",
+    "chart_hbar":     "Загальний рейтинг (Horizontal Bar)",
+    "chart_grouped":  "По факторах (Grouped Bar)",
+    "btn_generate":   "Зробити звіт",
+    "btn_download":   "Завантажити звіт",
+    "calculated_at":  "Розраховано"
+  },
+  "modals": {
+    "calculating_title": "Розрахунок виконується",
+    "calculating_desc":  "Сценарій оцінювання передано аналітику та знаходиться в черзі на розрахунок. Результати будуть доступні після завершення обчислень. Будь ласка, зачекайте або поверніться пізніше.",
+    "calculating_close": "Зрозуміло",
+    "failed_title":      "Помилка розрахунку",
+    "failed_desc":       "Під час виконання розрахунку виникла помилка. Можливі причини: некоректні вхідні дані або внутрішня помилка системи. Зверніться до аналітика для уточнення деталей або повторного запуску розрахунку.",
+    "failed_close":      "Закрити"
+  },
+  "create_decision": {
+    "name_placeholder": "Назва нового рішення",
+    "window_alts":      "Альтернативи",
+    "window_comments":  "Коментарі",
+    "add_alt":          "Додати альтернативу",
+    "save_draft":       "Зберегти як чернетку",
+    "risk_label":       "Ризик"
+  },
+  "calculate": {
+    "guide_title":       "Інструкція",
+    "guide_hide":        "Сховати",
+    "guide_show":        "Показати",
+    "info_title":        "Інформація про замовлення інвестора",
+    "add_factor":        "+ Додати Фактор",
+    "add_alt":           "+ Додати Альтернативу",
+    "calculate_btn":     "Розрахувати Рішення",
+    "decision_name":     "Назва Рішення",
+    "max_score":         "Макс. Бал (Max Score)"
+  }
+}

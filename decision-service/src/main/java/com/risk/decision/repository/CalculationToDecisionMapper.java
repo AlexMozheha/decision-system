@@ -4,43 +4,41 @@ import com.risk.dto.AlternativeResult;
 import com.risk.dto.CalculationResponse;
 import com.risk.decision.dto.CalculatedAltDto;
 import com.risk.decision.dto.DecisionCalculationData;
-import com.risk.decision.model.Alternative;
+import com.risk.decision.service.AlternativeService;
 import org.mapstruct.Mapper;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper(componentModel = "spring")
-public abstract class CalculationToDecisionMapper {
+public interface CalculationToDecisionMapper {
 
-    @Autowired
-    private AlternativeRepository alternativeRepository;
-
-    public DecisionCalculationData toDecisionCalculationData(
+    
+    default DecisionCalculationData toDecisionCalculationData(
             CalculationResponse response,
-            String decisionName
+            String decisionName,
+            AlternativeService alternativeService
     ) {
+
+        List<Integer> alternativeIds = response.results().stream()
+                .map(AlternativeResult::alternativeId)
+                .toList();
+
+        Map<Integer, String> alternativeNames = alternativeService.preloadAlternativeNames(alternativeIds);
+
         List<CalculatedAltDto> mapped = response.results().stream()
-                .map(this::mapAlternative)
+                .map(calc -> new CalculatedAltDto(
+                        alternativeNames.get(calc.alternativeId()),
+                        calc.weightedScore(),
+                        calc.riskAdjustedScore(),
+                        calc.normalizedRisk()
+                ))
                 .toList();
 
         return new DecisionCalculationData(
                 decisionName,
                 response.calculatedAt(),
                 mapped
-        );
-    }
-
-    private CalculatedAltDto mapAlternative(AlternativeResult calc) {
-        Alternative alt = alternativeRepository
-                .findById(calc.alternativeId())
-                .orElseThrow();
-
-        return new CalculatedAltDto(
-                alt.getName(),
-                calc.weightedScore(),
-                calc.riskAdjustedScore(),
-                calc.normalizedRisk()
         );
     }
 }

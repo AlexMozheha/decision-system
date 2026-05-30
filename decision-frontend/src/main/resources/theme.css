@@ -1,0 +1,146 @@
+
+/* СВІТЛА ТЕМА (за замовчуванням) */
+:root {
+  --bg-page:        #f2f2ef;
+  --bg-primary:     #ffffff;
+  --bg-secondary:   #e9edf2;
+  --bg-tertiary:    #e5e8e4;
+
+  --border-primary:   #c0c8bc;
+  --border-secondary: #d0d8d0;
+  --border-input:     #c0c8d0;
+  --border-blue:      #7a9ab8;
+  --border-green:     #7a9a7a;
+
+  --text-primary:   #1a1a1a;
+  --text-secondary: #555555;
+  --text-muted:     #888888;
+  --text-faint:     #aaaaaa;
+
+  --navbar-bg:      #3a3f48;
+  --navbar-text:    #dde2e8;
+  --navbar-muted:   #9aa3ae;
+  --navbar-border:  rgba(255,255,255,0.25);
+
+  --card-bg:        #fafafa;
+  --card-hover:     #ffffff;
+
+  --input-bg:       #ffffff;
+  --input-text:     #1a1a1a;
+
+  --highlight:      #fff3b0;
+
+  /* Статуси — однакові в обох темах */
+  --draft-bg:       #eeeeec; --draft-color:   #555;    --draft-border:   #bbb;
+  --ready-bg:       #deeaf7; --ready-color:   #3a6a9a; --ready-border:   #7a9ab8;
+  --calc-bg:        #f5e8d0; --calc-color:    #7a5a2a; --calc-border:    #c8a870;
+  --done-bg:        #deeede; --done-color:    #3a6a3a; --done-border:    #7a9a7a;
+  --failed-bg:      #f5dede; --failed-color:  #8a3a3a; --failed-border:  #c87a7a;
+  --final-bg:       #e8e6f5; --final-color:   #5a4a9a; --final-border:   #9a8ab8;
+}
+
+/* ТЕМНА ТЕМА */
+[data-theme="dark"] {
+  --bg-page:        #1a1d22;
+  --bg-primary:     #22262e;
+  --bg-secondary:   #2a2f38;
+  --bg-tertiary:    #252a32;
+
+  --border-primary:   #3a4048;
+  --border-secondary: #333a44;
+  --border-input:     #3a4250;
+  --border-blue:      #4a6a88;
+  --border-green:     #3a6040;
+
+  --text-primary:   #dde2e8;
+  --text-secondary: #9aa3ae;
+  --text-muted:     #6a7a8a;
+  --text-faint:     #4a5a6a;
+
+  --navbar-bg:      #1e2228;
+  --navbar-text:    #dde2e8;
+  --navbar-muted:   #6a7a8a;
+  --navbar-border:  rgba(255,255,255,0.15);
+
+  --card-bg:        #252a32;
+  --card-hover:     #2e3440;
+
+  --input-bg:       #2a2f38;
+  --input-text:     #dde2e8;
+
+  --highlight:      #5a4a00;
+}
+
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Navbar */
+.navbar { background: var(--navbar-bg); }
+.navbar-logo { color: var(--navbar-text); }
+.user-label { color: var(--navbar-muted); }
+.user-label strong { color: var(--navbar-text); }
+.btn-logout {
+  border-color: var(--navbar-border);
+  color: var(--navbar-muted);
+}
+.btn-logout:hover { background: rgba(255,255,255,0.07); }
+
+/* Кнопка теми в navbar */
+.btn-theme {
+  background: transparent;
+  border: 1.5px solid var(--navbar-border);
+  padding: 5px 10px;
+  font-size: 16px;
+  color: var(--navbar-muted);
+  cursor: pointer;
+  display: flex; align-items: center;
+  transition: color 0.15s;
+}
+.btn-theme:hover { color: var(--navbar-text); }
+
+/* Кнопка мови */
+.btn-lang {
+  background: transparent;
+  border: 1.5px solid var(--navbar-border);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--navbar-muted);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: color 0.15s;
+}
+.btn-lang:hover { color: var(--navbar-text); }
+
+/* Картки і секції */
+.decision-card {
+  background: var(--card-bg);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+}
+.decision-card:hover { background: var(--card-hover); border-color: var(--border-blue); }
+
+.decisions-section { background: var(--bg-tertiary); border-color: var(--border-primary); }
+.create-section    { background: var(--bg-secondary); }
+
+/* Інпути */
+input, textarea, select {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border-color: var(--border-input) !important;
+}
+
+/* Search box */
+.search-box { background: var(--input-bg); border-color: var(--border-input); }
+
+/* Highlight */
+.highlight { background: var(--highlight); }
+
+/* Smooth transition для всіх елементів */
+*, *::before, *::after {
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}

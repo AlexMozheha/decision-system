@@ -16,12 +16,11 @@ public class DecisionValidationService {
 
     public void validateFactorDataConsistency(DecisionRequest request) {
 
-        // 1. Створення мапи для швидкого доступу: Factor NAME -> FactorClassification
-        // Ми використовуємо name як унікальний ключ.
+        // Створення мапи для швидкого доступу: Factor NAME -> FactorClassification
+        // name - унікальний ключ.
         Map<String, FactorClassification> factorTypeMap = request.factorParams().stream()
                 .collect(Collectors.toMap(FactorParams::name, FactorParams::type));
 
-        // 2. Ітерація та перевірка узгодженості
         request.alternatives().stream()
                 .flatMap(alternative -> alternative.values().stream())
                 .forEach(eval -> {
@@ -29,7 +28,6 @@ public class DecisionValidationService {
                     String factorName = eval.factorName();
                     FactorClassification type = factorTypeMap.get(factorName);
 
-                    // Перевірка, чи взагалі існує фактор з таким ім'ям
                     if (type == null) {
                         throw new IllegalArgumentException("Factor name '" + factorName + "' found in evaluation values is missing in factor parameters.");
                     }
@@ -37,7 +35,7 @@ public class DecisionValidationService {
                     boolean rawValueProvided = eval.rawValue() != null;
                     boolean scoreProvided = eval.score() != null;
 
-                    // Ми припускаємо, що XOR вже пройшов, і перевіряємо, чи відповідає ТИП наданому полю.
+                    // припускаємо, що XOR вже пройшов, і перевіряємо, чи відповідає ТИП наданому полю.
 
                     // Правило: Об'єктивний фактор (вимагає rawValue)
                     if (type == FactorClassification.OBJECTIVE && !rawValueProvided) {

@@ -36,9 +36,11 @@ public class DecisionOrchestratorService {
     private final CalculationRequestMapper calculationRequestMapper;
 
     private final CalculationServiceClient calculationClient;
+
+
     private final CalculationResultPersistenceService persistenceService;
     private final DecisionResultProcessor resultProcessor;
-
+    private final AlternativeService alternativeService;
 
     private final CalculationToDecisionMapper calcToDecisionMapper;
 
@@ -132,7 +134,8 @@ public class DecisionOrchestratorService {
         DecisionCalculationData calcData =
                 calcToDecisionMapper.toDecisionCalculationData(
                         calcResponse,
-                        savedDecision.getName()
+                        savedDecision.getName(),
+                        alternativeService
                 );
 
 

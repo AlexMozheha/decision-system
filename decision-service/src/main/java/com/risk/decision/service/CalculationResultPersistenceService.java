@@ -27,7 +27,7 @@ public class CalculationResultPersistenceService {
     private final AlternativeRepository alternativeRepository;
     private final CalculationResultRepository calculationResultRepository;
 
-    // Ми не будемо впроваджувати DecisionResultProcessor тут,
+    // Не будемо впроваджувати DecisionResultProcessor тут,
     // оскільки цей сервіс відповідає лише за ЗБЕРЕЖЕННЯ.
 
     /**

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decision System — Результати</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+    body { font-family: system-ui, sans-serif; background: #f2f2ef; min-height: 100vh; }
+
+    .navbar {
+      background: #3a3f48;
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .user-label { font-size: 14px; color: #9aa3ae; }
+    .user-label strong { color: #e8eaed; }
+    .btn-logout {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      padding: 6px 18px;
+      font-size: 14px;
+      color: #d0d5db;
+      cursor: pointer;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.07); }
+
+    .main {
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .left-col { display: flex; flex-direction: column; gap: 16px; }
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+    .window { border: 2.5px solid; overflow: hidden; }
+    .window-results { border-color: #7a9ab8; }
+    .window-reco    { border-color: #9a7ab8; }
+    .window-chart-radar  { border-color: #8a9a7a; }
+    .window-chart-hbar   { border-color: #9a8a6a; }
+    .window-chart-grouped{ border-color: #7a8a9a; }
+
+    .window-titlebar {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .window-results .window-titlebar      { background: #c8d8e8; color: #2a4a6a; border-bottom: 2px solid #7a9ab8; }
+    .window-reco    .window-titlebar      { background: #d8c8e8; color: #4a2a6a; border-bottom: 2px solid #9a7ab8; }
+    .window-chart-radar .window-titlebar  { background: #d0dcc8; color: #2a3a1a; border-bottom: 2px solid #8a9a7a; }
+    .window-chart-hbar .window-titlebar   { background: #dcd4c0; color: #3a2a0a; border-bottom: 2px solid #9a8a6a; }
+    .window-chart-grouped .window-titlebar{ background: #c8d0dc; color: #1a2a3a; border-bottom: 2px solid #7a8a9a; }
+
+    .window-reco .window-body {
+      height: 240px;
+      overflow-y: auto;
+      padding: 16px;
+      background: #f4f0fa;
+      font-size: 14px;
+      color: #2a2a2a;
+      line-height: 1.8;
+    }
+    .chart-body { padding: 16px; background: #fafafa; }
+
+    .alt-row {
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .alt-row:last-child { border-bottom: none; }
+    .alt-row.above { background: #deeede; color: #2a5a2a; }
+    .alt-row.below { background: #f5dede; color: #5a2a2a; }
+    .alt-rank { font-size: 12px; opacity: 0.7; margin-right: 8px; }
+    .alt-score { font-size: 13px; font-weight: 600; }
+
+    .recommended {
+      padding: 10px 16px;
+      background: #eef4fa;
+      border-top: 2px solid #7a9ab8;
+      font-size: 13px;
+      color: #3a5a7a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-report {
+      background: #e8ece8;
+      border: 2px solid #8a9a8a;
+      padding: 13px 28px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #3a4a3a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+    }
+    .btn-report:hover { background: #d8ddd6; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <span></span>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span class="user-label"><strong id="username"></strong></span>
+      <button class="btn-logout" onclick="logout()">Вийти</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="left-col">
+
+      <!-- Результати -->
+      <div class="window window-results">
+        <div class="window-titlebar" style="justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-chart-bar" style="font-size:15px" aria-hidden="true"></i>
+            Результати
+          </span>
+          <span id="calculated-at-label" style="font-size:11px;font-weight:400;opacity:0.7;display:none;">
+            <i class="ti ti-calculator" style="font-size:11px" aria-hidden="true"></i>
+            <span id="calculated-at-text"></span>
+          </span>
+        </div>
+        <div id="results-list"></div>
+        <div class="recommended" id="recommended-block" style="display:none;">
+          <i class="ti ti-circle-check" style="font-size:15px" aria-hidden="true"></i>
+          Рекомендована альтернатива: <strong id="recommended-name"></strong>
+        </div>
+      </div>
+
+      <!-- PDF кнопка -->
+      <button class="btn-report" id="pdf-btn" onclick="handlePDF()">
+        <i class="ti ti-file-type-pdf" style="font-size:18px" aria-hidden="true"></i>
+        <span id="pdf-btn-label">...</span>
+      </button>
+
+      <!-- Radar chart -->
+      <div class="window window-chart-radar">
+        <div class="window-titlebar">
+          <i class="ti ti-chart-radar" style="font-size:15px" aria-hidden="true"></i>
+          Порівняння по факторах (Radar)
+        </div>
+        <div class="chart-body">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="right-col">
+
+      <!-- Рекомендації -->
+      <div class="window window-reco">
+        <div class="window-titlebar">
+          <i class="ti ti-bulb" style="font-size:15px" aria-hidden="true"></i>
+          Рекомендації
+        </div>
+        <div class="window-body" id="reco-text"></div>
+      </div>
+
+      <!-- Horizontal bar -->
+      <div class="window window-chart-hbar">
+        <div class="window-titlebar">
+          <i class="ti ti-chart-bar" style="font-size:15px" aria-hidden="true"></i>
+          Загальний рейтинг (Horizontal Bar)
+        </div>
+        <div class="chart-body">
+          <canvas id="hbarChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Grouped bar -->
+      <div class="window window-chart-grouped">
+        <div class="window-titlebar">
+          <i class="ti ti-chart-dots" style="font-size:15px" aria-hidden="true"></i>
+          По факторах (Grouped Bar)
+        </div>
+        <div class="chart-body">
+          <canvas id="groupedChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // ─── РОЛЬ ───────────────────────────────────────────────────────────────
+    // TODO: замінити на зчитування з JWT:
+    // const token = localStorage.getItem('token');
+    // const payload = JSON.parse(atob(token.split('.')[1]));
+    // const ROLE = payload.role;
+
+    const params = new URLSearchParams(window.location.search);
+    const ROLE = params.get('role') || 'ADMIN'; // 'ADMIN' | 'INVESTOR'
+    const decisionId = params.get('id');
+    const THRESHOLD = 0.70; // TODO: отримувати з беку
+
+    // ─── MOCK ДАНІ ─────────────────────────────────────────────────────────
+    // TODO: замінити на GET /api/decisions/{id}/results
+    const mockResults = [
+      { rank: 1, name: 'Supplier B', score: 0.85, factorScores: { Price: 82, Quality: 75, DeliverySpeed: 90 } },
+      { rank: 2, name: 'Supplier A', score: 0.72, factorScores: { Price: 60, Quality: 88, DeliverySpeed: 55 } },
+      { rank: 3, name: 'Supplier C', score: 0.60, factorScores: { Price: 70, Quality: 65, DeliverySpeed: 48 } },
+    ];
+    const mockFactors = ['Price', 'Quality', 'DeliverySpeed'];
+    // TODO: отримувати з беку разом з результатами
+    const mockCalculatedAt = '2025-04-12T14:35:00';
+
+    // ─── КОЛЬОРИ ───────────────────────────────────────────────────────────
+    const COLORS_BG = [
+      'rgba(58, 106, 154, 0.35)',
+      'rgba(90, 154, 90, 0.35)',
+      'rgba(154, 90, 90, 0.35)',
+      'rgba(154, 130, 58, 0.35)',
+      'rgba(100, 80, 154, 0.35)',
+    ];
+    const COLORS_BORDER = [
+      'rgba(58, 106, 154, 1)',
+      'rgba(90, 154, 90, 1)',
+      'rgba(154, 90, 90, 1)',
+      'rgba(154, 130, 58, 1)',
+      'rgba(100, 80, 154, 1)',
+    ];
+
+    // ─── NAVBAR ────────────────────────────────────────────────────────────
+    function renderCalculatedAt(isoDate) {
+      if (!isoDate) return;
+      const d = new Date(isoDate);
+      const formatted = d.toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" })
+        + " " + d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+      const label = document.getElementById("calculated-at-label");
+      const text  = document.getElementById("calculated-at-text");
+      text.textContent = "Розраховано: " + formatted;
+      label.style.display = "flex";
+      label.style.alignItems = "center";
+      label.style.gap = "4px";
+    }
+
+    function setupNavbar() {
+      const el = document.getElementById('username');
+      if (ROLE === 'ADMIN') {
+        el.textContent = 'Адміністратор: Admin123'; // TODO: з JWT
+      } else {
+        el.textContent = 'Інвестор: User123'; // TODO: з JWT
+      }
+    }
+
+    // ─── PDF КНОПКА ────────────────────────────────────────────────────────
+    function setupPDFButton() {
+      document.getElementById('pdf-btn-label').textContent =
+        ROLE === 'ADMIN' ? 'Зробити звіт (PDF)' : 'Завантажити звіт (PDF)';
+    }
+
+    function handlePDF() {
+      // TODO: підключити реальний fetch до беку
+      // const token = localStorage.getItem('token');
+      // const method = ROLE === 'ADMIN' ? 'POST' : 'GET';
+      // fetch(`/api/decisions/${decisionId}/report`, {
+      //   method,
+      //   headers: { 'Authorization': 'Bearer ' + token }
+      // }).then(r => r.blob()).then(downloadBlob);
+      console.log(`${ROLE}: PDF для рішення №${decisionId}`);
+    }
+
+    function downloadBlob(blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `decision-${decisionId}-report.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ─── РЕЗУЛЬТАТИ ────────────────────────────────────────────────────────
+    function renderResults(results) {
+      const list      = document.getElementById('results-list');
+      const recoBlock = document.getElementById('recommended-block');
+      const recoName  = document.getElementById('recommended-name');
+      const recoText  = document.getElementById('reco-text');
+
+      list.innerHTML = results.map(r => `
+        <div class="alt-row ${r.score >= THRESHOLD ? 'above' : 'below'}">
+          <span><span class="alt-rank">${r.rank}.</span> ${r.name}</span>
+          <span class="alt-score">${r.score.toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      recoBlock.style.display = 'flex';
+      recoName.textContent = results[0].name;
+
+      recoText.innerHTML = results.map(r => {
+        if (r.rank === 1) {
+          return `<p><strong>${r.name}</strong> отримала найвищий рейтинг (${r.score.toFixed(2)}), що свідчить про її найбільшу ефективність. Дана альтернатива рекомендується до вибору.</p>`;
+        } else if (r.score >= THRESHOLD) {
+          return `<p><strong>${r.name}</strong> (${r.score.toFixed(2)}) має нижчий результат, проте перевищує порогове значення, тому також може бути рекомендована до розгляду.</p>`;
+        } else {
+          return `<p><strong>${r.name}</strong> (${r.score.toFixed(2)}) не досягла порогового значення, тому не рекомендується до вибору.</p>`;
+        }
+      }).join('<br/>');
+    }
+
+    // ─── ГРАФІКИ ───────────────────────────────────────────────────────────
+
+    // Спільні налаштування сітки — прозора
+    const gridStyle = {
+      color: 'rgba(0,0,0,0.08)',
+      lineWidth: 1,
+    };
+
+    // 1. Radar
+    function renderRadarChart(results, factors) {
+      new Chart(document.getElementById('radarChart'), {
+        type: 'radar',
+        data: {
+          labels: factors,
+          datasets: results.map((r, i) => ({
+            label: r.name,
+            data: factors.map(f => r.factorScores[f] ?? 0),
+            backgroundColor: COLORS_BG[i % COLORS_BG.length],
+            borderColor: COLORS_BORDER[i % COLORS_BORDER.length],
+            borderWidth: 1.5,
+            pointBackgroundColor: COLORS_BORDER[i % COLORS_BORDER.length],
+            pointRadius: 3,
+          }))
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+          scales: {
+            r: {
+              min: 0, max: 100,
+              ticks: { stepSize: 20, font: { size: 10 }, color: 'rgba(0,0,0,0.4)', backdropColor: 'transparent' },
+              pointLabels: { font: { size: 11 }, color: '#333' },
+              grid: { color: 'rgba(0,0,0,0.08)' },
+              angleLines: { color: 'rgba(0,0,0,0.1)' },
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Horizontal bar — загальний score
+    function renderHBarChart(results) {
+      new Chart(document.getElementById('hbarChart'), {
+        type: 'bar',
+        data: {
+          labels: results.map(r => r.name),
+          datasets: [{
+            label: 'Risk Adjusted Score',
+            data: results.map(r => r.score),
+            backgroundColor: results.map((_, i) => COLORS_BG[i % COLORS_BG.length]),
+            borderColor: results.map((_, i) => COLORS_BORDER[i % COLORS_BORDER.length]),
+            borderWidth: 1.5,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` Score: ${ctx.raw.toFixed(2)}` } }
+          },
+          scales: {
+            x: {
+              min: 0, max: 1,
+              ticks: { stepSize: 0.2, font: { size: 11 } },
+              grid: gridStyle,
+              border: { color: 'rgba(0,0,0,0.15)' }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { size: 12 } },
+              border: { color: 'rgba(0,0,0,0.15)' }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Grouped bar — по факторах
+    function renderGroupedChart(results, factors) {
+      new Chart(document.getElementById('groupedChart'), {
+        type: 'bar',
+        data: {
+          labels: factors,
+          datasets: results.map((r, i) => ({
+            label: r.name,
+            data: factors.map(f => r.factorScores[f] ?? 0),
+            backgroundColor: COLORS_BG[i % COLORS_BG.length],
+            borderColor: COLORS_BORDER[i % COLORS_BORDER.length],
+            borderWidth: 1.5,
+          }))
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } },
+              border: { color: 'rgba(0,0,0,0.15)' }
+            },
+            y: {
+              min: 0, max: 100,
+              ticks: { stepSize: 20, font: { size: 11 } },
+              grid: gridStyle,
+              border: { color: 'rgba(0,0,0,0.15)' }
+            }
+          }
+        }
+      });
+    }
+
+    // ─── LOGOUT ────────────────────────────────────────────────────────────
+    function logout() {
+      // TODO: localStorage.removeItem('token');
+      window.location.href = 'index.html';
+    }
+
+    // ─── ІНІЦІАЛІЗАЦІЯ ─────────────────────────────────────────────────────
+    setupNavbar();
+    renderCalculatedAt(mockCalculatedAt);
+    setupPDFButton();
+    renderResults(mockResults);
+    renderRadarChart(mockResults, mockFactors);
+    renderHBarChart(mockResults);
+    renderGroupedChart(mockResults, mockFactors);
+  </script>
+
+</body>
+</html>

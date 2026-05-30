@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decision Support System — Аналітик</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+
+  <script>
+    document.documentElement.setAttribute(
+      'data-theme',
+      localStorage.getItem('dss-theme') || 'light'
+    );
+  </script>
+
+  <link rel="stylesheet" href="theme.css" />
+  <script src="global.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+    body { font-family: system-ui, sans-serif; background: var(--bg-page); min-height: 100vh; }
+
+    .navbar {
+      background: var(--navbar-bg); padding: 14px 32px;
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    }
+    .navbar-logo { font-size: 16px; font-weight: 500; color: var(--navbar-text); }
+    .navbar-right { display: flex; align-items: center; gap: 12px; }
+    .user-label { font-size: 14px; color: var(--navbar-muted); }
+    .user-label strong { color: var(--navbar-text); }
+    .btn-logout {
+      background: transparent; border: 1.5px solid var(--navbar-border);
+      padding: 6px 18px; font-size: 14px; color: var(--navbar-muted); cursor: pointer;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.07); }
+
+    .main { padding: 28px 32px; }
+
+    /* TOOLBAR */
+    .toolbar {
+      background: var(--bg-secondary); border: 2px solid var(--border-input);
+      padding: 16px 20px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .toolbar-label {
+      font-size: 12px; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+    }
+
+    .search-box {
+      display: flex; align-items: center;
+      background: var(--input-bg); border: 1.5px solid var(--border-input);
+      flex: 1; min-width: 200px;
+    }
+    .search-box i { padding: 0 10px; font-size: 16px; color: var(--text-muted); }
+    .search-box input {
+      border: none; outline: none; padding: 7px 10px 7px 0;
+      font-size: 14px; background: transparent; color: var(--text-primary); width: 100%;
+    }
+    .search-box input::placeholder { color: var(--text-muted); }
+
+    .filter-tabs { display: flex; }
+    .filter-tab {
+      padding: 7px 14px; font-size: 12px; font-weight: 500;
+      border: 1.5px solid var(--border-input); border-right: none;
+      background: var(--bg-primary); color: var(--text-secondary);
+      cursor: pointer; white-space: nowrap;
+    }
+    .filter-tab:last-child { border-right: 1.5px solid var(--border-input); }
+    .filter-tab:hover { background: var(--bg-secondary); }
+    .filter-tab.active { background: var(--navbar-bg); color: var(--navbar-text); border-color: var(--navbar-bg); }
+    .filter-tab.active + .filter-tab { border-left-color: var(--navbar-bg); }
+
+    .results-count { font-size: 12px; color: var(--text-muted); white-space: nowrap; margin-left: auto; }
+
+    /* СЕКЦІЯ */
+    .decisions-section { background: var(--bg-tertiary); border: 2px solid var(--border-primary); padding: 20px 24px; }
+    .section-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+
+    .empty-state {
+      background: var(--card-bg); border: 1.5px solid var(--border-secondary);
+      padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;
+    }
+
+    .decision-card {
+      background: var(--card-bg); border: 1.5px solid var(--border-secondary);
+      padding: 14px 20px; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; text-decoration: none;
+    }
+    .decision-card:last-child { margin-bottom: 0; }
+    .decision-card:hover { border-color: var(--border-green); background: var(--card-hover); }
+
+    .decision-left { display: flex; align-items: center; gap: 16px; flex: 1; }
+    .decision-num { font-size: 13px; color: var(--text-muted); min-width: 55px; }
+    .decision-info { display: flex; flex-direction: column; gap: 3px; }
+    .decision-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .decision-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 14px; flex-wrap: wrap; }
+    .decision-meta span { display: flex; align-items: center; gap: 4px; }
+    .decision-right { display: flex; align-items: center; gap: 12px; }
+
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; padding: 4px 12px;
+      font-weight: 500; white-space: nowrap; border: 1.5px solid;
+    }
+    .s-draft       { background: var(--draft-bg);  color: var(--draft-color);  border-color: var(--draft-border); }
+    .s-ready       { background: var(--ready-bg);  color: var(--ready-color);  border-color: var(--ready-border); }
+    .s-calculating { background: var(--calc-bg);   color: var(--calc-color);   border-color: var(--calc-border); }
+    .s-calculated  { background: var(--done-bg);   color: var(--done-color);   border-color: var(--done-border); }
+    .s-failed      { background: var(--failed-bg); color: var(--failed-color); border-color: var(--failed-border); }
+
+    .chevron { font-size: 16px; color: var(--text-muted); }
+    .highlight { background: var(--highlight); }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <span class="navbar-logo" data-language="nav.logo">Decision Support System</span>
+    <div class="navbar-right">
+      <span class="user-label">
+        <span data-language="nav.role_admin">Аналітик</span>:
+        <strong id="username">Admin123</strong>
+      </span>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Toggle theme">
+        <i class="ti ti-moon" aria-hidden="true"></i>
+      </button>
+      <button class="btn-lang" id="btn-lang" onclick="toggleLang()">EN</button>
+      <button class="btn-logout" onclick="logout()" data-language="nav.logout">Вийти</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="toolbar">
+      <span class="toolbar-label" data-language="admin_dashboard.filter_label">Фільтр</span>
+
+      <div class="filter-tabs" id="filter-tabs">
+        <button class="filter-tab" data-status="ALL" onclick="setFilter('ALL')" data-language="admin_dashboard.filter_all">Всі</button>
+        <button class="filter-tab active" data-status="READY_FOR_CALCULATION" onclick="setFilter('READY_FOR_CALCULATION')">Ready</button>
+        <button class="filter-tab" data-status="CALCULATING"        onclick="setFilter('CALCULATING')">Calculating</button>
+        <button class="filter-tab" data-status="CALCULATED"         onclick="setFilter('CALCULATED')">Calculated</button>
+        <button class="filter-tab" data-status="CALCULATION_FAILED" onclick="setFilter('CALCULATION_FAILED')">Failed</button>
+        <button class="filter-tab" data-status="DRAFT"              onclick="setFilter('DRAFT')">Draft</button>
+      </div>
+
+      <div class="search-box">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Назва сценарію або логін інвестора..."
+          data-language="admin_dashboard.search_placeholder"
+          data-language-attr="placeholder"
+          oninput="applyFilters()"
+        />
+      </div>
+
+      <span class="results-count" id="results-count"></span>
+    </div>
+
+    <div class="decisions-section">
+      <p class="section-title" id="section-title">Очікують розрахунку</p>
+      <div id="decisions-list"></div>
+    </div>
+  </main>
+
+  <script>
+    const STATUS_CONFIG = {
+      DRAFT:                 { icon: 'ti-pencil',       css: 's-draft' },
+      READY_FOR_CALCULATION: { icon: 'ti-send',         css: 's-ready' },
+      CALCULATING:           { icon: 'ti-loader',       css: 's-calculating' },
+      CALCULATED:            { icon: 'ti-circle-check', css: 's-calculated' },
+      CALCULATION_FAILED:    { icon: 'ti-alert-circle', css: 's-failed' }
+    };
+
+    // TODO: замінити на GET /api/decisions?all=true (з JWT токеном адміна)
+    const mockDecisions = [
+      { id: 123, name: 'Оцінювання постачальників 2025',     investor: 'user_ivanov',    status: 'READY_FOR_CALCULATION', created_at: '2025-04-14', calculated_at: null },
+      { id: 122, name: 'Аналіз логістичних альтернатив',     investor: 'user_petrenko',  status: 'READY_FOR_CALCULATION', created_at: '2025-04-13', calculated_at: null },
+      { id: 121, name: 'Порівняння підрядників будівництва', investor: 'user_kovalenko', status: 'READY_FOR_CALCULATION', created_at: '2025-04-12', calculated_at: null },
+      { id: 120, name: 'Інвестиційний портфель Q2',           investor: 'user_ivanov',    status: 'CALCULATING',           created_at: '2025-04-10', calculated_at: null },
+      { id: 119, name: 'Вибір технологічної платформи',       investor: 'user_melnyk',    status: 'CALCULATED',            created_at: '2025-04-05', calculated_at: '2025-04-07' },
+      { id: 118, name: 'Оцінка ринків збуту 2025',            investor: 'user_petrenko',  status: 'CALCULATION_FAILED',    created_at: '2025-04-03', calculated_at: null },
+      { id: 117, name: 'Аналіз інвестиційних ризиків',        investor: 'user_kovalenko', status: 'DRAFT',                 created_at: '2025-03-28', calculated_at: null },
+      { id: 116, name: 'Порівняння фінансових інструментів',  investor: 'user_ivanov',    status: 'CALCULATED',            created_at: '2025-03-20', calculated_at: '2025-03-22' },
+    ];
+
+    let currentFilter = 'READY_FOR_CALCULATION';
+
+    function formatDate(dateStr) {
+      if (!dateStr) return null;
+      return new Date(dateStr).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function highlightText(text, query) {
+      if (!query) return text;
+      const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return text.replace(re, '<mark class="highlight">$1</mark>');
+    }
+
+    function setFilter(status) {
+      currentFilter = status;
+      document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.status === status);
+      });
+      // Назва секції з перекладу
+      const titles = t('admin_dashboard.titles');
+      const titleKey = `admin_dashboard.titles.${status}`;
+      document.getElementById('section-title').textContent = t(titleKey) || status;
+      applyFilters();
+    }
+
+    // Оновити таби і секцію при зміні мови
+    function refreshFilterLabels() {
+      document.querySelectorAll('.filter-tab[data-status]').forEach(tab => {
+        const status = tab.dataset.status;
+        if (status === 'ALL') return; // у нього data-language вже є
+        const label = t(`statuses.${status}`);
+        if (label && label !== `statuses.${status}`) tab.textContent = label;
+      });
+      const titleKey = `admin_dashboard.titles.${currentFilter}`;
+      const titleEl = document.getElementById('section-title');
+      const translated = t(titleKey);
+      if (translated && translated !== titleKey) titleEl.textContent = translated;
+    }
+
+    function applyFilters() {
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+
+      const filtered = mockDecisions.filter(d => {
+        const matchStatus = currentFilter === 'ALL' || d.status === currentFilter;
+        const matchSearch = !query ||
+          d.name.toLowerCase().includes(query) ||
+          d.investor.toLowerCase().includes(query);
+        return matchStatus && matchSearch;
+      });
+
+      renderDecisions(filtered, query);
+
+      const countEl = document.getElementById('results-count');
+      const label = t('admin_dashboard.results_count') || 'Показано';
+      countEl.textContent = `${label}: ${filtered.length} / ${mockDecisions.length}`;
+    }
+
+    function getCardHref(decision) {
+      if (['READY_FOR_CALCULATION', 'CALCULATING'].includes(decision.status)) {
+        return `admin-calculate.html?id=${decision.id}`;
+      }
+      if (decision.status === 'CALCULATED') {
+        return `decision-results.html?id=${decision.id}&role=ADMIN`;
+      }
+      return null;
+    }
+
+    function renderDecisions(decisions, query = '') {
+      const container = document.getElementById('decisions-list');
+
+      if (!decisions.length) {
+        container.innerHTML = `<div class="empty-state">${t('admin_dashboard.empty')}</div>`;
+        return;
+      }
+
+      container.innerHTML = decisions.map(d => {
+        const s = STATUS_CONFIG[d.status];
+        if (!s) return '';
+
+        const href         = getCardHref(d);
+        const createdStr   = formatDate(d.created_at);
+        const calcStr      = formatDate(d.calculated_at);
+        const nameHtml     = highlightText(d.name, query);
+        const investorHtml = highlightText(d.investor, query);
+        const statusLabel  = t(`statuses.${d.status}`) || d.status;
+
+        const tag      = href ? 'a' : 'div';
+        const hrefAttr = href ? `href="${href}"` : '';
+
+        return `
+          <${tag} ${hrefAttr} class="decision-card" style="text-decoration:none">
+            <div class="decision-left">
+              <span class="decision-num">№ ${d.id}</span>
+              <div class="decision-info">
+                <span class="decision-name">${nameHtml}</span>
+                <div class="decision-meta">
+                  <span><i class="ti ti-user" style="font-size:11px"></i> ${investorHtml}</span>
+                  <span><i class="ti ti-calendar-plus" style="font-size:11px"></i> ${t('admin_dashboard.date_created')}: ${createdStr}</span>
+                  ${calcStr ? `<span><i class="ti ti-calculator" style="font-size:11px"></i> ${t('admin_dashboard.date_calc')}: ${calcStr}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="decision-right">
+              <span class="status-badge ${s.css}">
+                <i class="ti ${s.icon}" style="font-size:13px" aria-hidden="true"></i>
+                ${statusLabel}
+              </span>
+              ${href
+                ? '<i class="ti ti-chevron-right chevron" aria-hidden="true"></i>'
+                : '<i class="ti ti-minus" style="font-size:16px;color:#aaa"></i>'}
+            </div>
+          </${tag}>`;
+      }).join('');
+    }
+
+    function logout() {
+      // TODO: localStorage.removeItem('token');
+      window.location.href = 'index.html';
+    }
+
+    // При зміні мови — перерендер і оновлення лейблів
+    document.addEventListener('langChanged', () => {
+      refreshFilterLabels();
+      applyFilters();
+    });
+
+    // Початковий рендер після завантаження перекладів
+    document.addEventListener('langChanged', applyFilters, { once: true });
+  </script>
+</body>

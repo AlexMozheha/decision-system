@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "logo":       "Decision Support System",
+    "login":      "Login",
+    "register":   "Register",
+    "logout":     "Logout",
+    "role_pm":    "Investor",
+    "role_admin": "Admin"
+  },
+  "login_form": {
+    "login":      "Login",
+    "password":   "Password",
+    "submit":     "Confirm"
+  },
+  "register_form": {
+    "login":      "Login",
+    "email":      "Email",
+    "password":   "Password",
+    "repeat":     "Repeat password",
+    "submit":     "Register"
+  },
+  "investor_dashboard": {
+    "create_btn":    "Create new evaluation scenario",
+    "section_title": "My evaluation scenarios",
+    "search_placeholder": "Search by name...",
+    "empty":         "No evaluation scenarios found",
+    "date_created":  "Created",
+    "date_calc":     "Calculated"
+  },
+  "admin_dashboard": {
+    "section_title":   "Evaluation scenarios",
+    "search_placeholder": "Scenario name or investor login...",
+    "empty":           "No scenarios found for selected criteria",
+    "results_count":   "Showing",
+    "filter_all":      "All",
+    "filter_label":    "Filter",
+    "date_created":    "Created",
+    "date_calc":       "Calculated",
+    "titles": {
+      "ALL":                   "All evaluation scenarios",
+      "READY_FOR_CALCULATION": "Pending calculation",
+      "CALCULATING":           "Calculating",
+      "CALCULATED":            "Calculated",
+      "CALCULATION_FAILED":    "Calculation failed",
+      "DRAFT":                 "Drafts"
+    }
+  },
+  "statuses": {
+    "DRAFT":                 "Draft",
+    "READY_FOR_CALCULATION": "Ready",
+    "CALCULATING":           "Calculating",
+    "CALCULATED":            "Calculated",
+    "CALCULATION_FAILED":    "Failed"
+  },
+  "results": {
+    "title":          "Results",
+    "recommended":    "Recommended alternative",
+    "reco_section":   "Recommendations",
+    "chart_radar":    "Factor comparison (Radar)",
+    "chart_hbar":     "Overall ranking (Horizontal Bar)",
+    "chart_grouped":  "By factors (Grouped Bar)",
+    "btn_generate":   "Generate report",
+    "btn_download":   "Download report",
+    "calculated_at":  "Calculated"
+  },
+  "modals": {
+    "calculating_title": "Calculation in progress",
+    "calculating_desc":  "The evaluation scenario has been submitted to the analyst and is queued for calculation. Results will be available once the computation is complete. Please wait or check back later.",
+    "calculating_close": "Got it",
+    "failed_title":      "Calculation error",
+    "failed_desc":       "An error occurred during the calculation. Possible causes: invalid input data or an internal system error. Please contact the analyst for details or to re-run the calculation.",
+    "failed_close":      "Close"
+  },
+  "create_decision": {
+    "name_placeholder": "Scenario name",
+    "window_alts":      "Alternatives",
+    "window_comments":  "Comments",
+    "add_alt":          "Add alternative",
+    "save_draft":       "Save as draft",
+    "risk_label":       "Risk"
+  },
+  "calculate": {
+    "guide_title":       "Instructions",
+    "guide_hide":        "Hide",
+    "guide_show":        "Show",
+    "info_title":        "Investor order information",
+    "add_factor":        "+ Add Factor",
+    "add_alt":           "+ Add Alternative",
+    "calculate_btn":     "Calculate",
+    "decision_name":     "Scenario name",
+    "max_score":         "Max Score"
+  }
+}
