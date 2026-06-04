@@ -66,15 +66,22 @@ function t(key) {
   return val ?? key;
 }
 
-// Застосувати переклади до елементів з data-i18n="key"
+// Застосувати переклади до елементів"
 function applyTranslations() {
   document.querySelectorAll('[data-language]').forEach(el => {
     const key = el.getAttribute('data-language');
     const attr = el.getAttribute('data-language-attr');
+    const isHtml = el.hasAttribute('data-html');
     const val = t(key);
+
+    if (!val) return;
+
     if (attr) {
       el.setAttribute(attr, val);
-    } else {
+    } 
+    else if (isHtml) {
+      el.innerHTML = val;}
+    else {
       el.textContent = val;
     }
   });
@@ -84,4 +91,31 @@ function applyTranslations() {
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   await initLang();
+});
+
+window.addEventListener('storage', async (event) => {
+  if (event.key === 'dss-theme') {
+    const newTheme = event.newValue || 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    updateThemeBtn(newTheme);
+  }
+  
+  // Якщо інша сторінка змінила мову
+  if (event.key === 'dss-lang') {
+    const newLang = event.newValue || 'uk';
+    await loadLang(newLang);
+    updateLangBtn(newLang);
+  }
+});
+
+// 💡 Фікс для кнопки "Назад" у браузері (примусове оновлення з bfcache)
+window.addEventListener('pageshow', (event) => {
+  // event.persisted означає, що сторінка дістається з кешу пам'яті
+  if (event.persisted) {
+    initTheme();
+    // Для мови: беремо актуальну з пам'яті
+    const savedLang = localStorage.getItem('dss-lang') || 'uk';
+    loadLang(savedLang);
+    updateLangBtn(savedLang);
+  }
 });

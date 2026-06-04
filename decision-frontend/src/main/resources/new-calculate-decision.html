@@ -2,222 +2,225 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Decision Service Calculator</title>
+    <title>Decision Support System — Розрахунок</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+
+    <script>
+        document.documentElement.setAttribute(
+            'data-theme',
+            localStorage.getItem('dss-theme') || 'light'
+        );
+    </script>
+
+    <link rel="stylesheet" href="theme.css" />
+    <script src="global.js"></script>
+
     <style>
         * { border-radius: 0; box-sizing: border-box; }
-        body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background-color: #f2f2ef; }
+        body { font-family: system-ui, sans-serif; margin: 0; padding: 0; 
+            background: var(--bg-page); }
+    
 
-        .navbar {
-            background: #3a3f48;
-            padding: 14px 32px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-        }
-        .navbar-logo {
-        font-size: 16px;
-        font-weight: 500;
-        color: #e8eaed;
-        }
-        .navbar-right { display: flex; align-items: center; gap: 16px; }
-        .user-label { font-size: 14px; color: #9aa3ae; }
-        .user-label strong { color: #e8eaed; }
-        .btn-logout {
-            background: transparent;
-            border: 1.5px solid rgba(255,255,255,0.25);
-            padding: 6px 18px;
-            font-size: 14px;
-            color: #d0d5db;
-            cursor: pointer;
-        }
-        .btn-logout:hover { background: rgba(255,255,255,0.07); }
+        .container { background: var(--bg-primary); padding: 20px; }
+        h2 { color: var(--text-primary); margin-top: 16px; }
 
-        .container { background: white; padding: 20px; }
-        h2 { color: #111; margin-top: 16px; }
-
-        .guide-box { border: 2px solid #7a9ab8; padding: 15px; margin-bottom: 20px; background-color: #eef4fa; }
+        /* ── Гайд ── */
+        .guide-box {
+            border: 2px solid var(--border-blue);
+            padding: 15px; margin-bottom: 20px;
+            background: var(--window-left-body);
+        }
         .guide-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-        .guide-header h3 { margin: 0; font-size: 14px; color: #111; }
-        .guide-toggle { background: transparent; border: 1.5px solid #7a9ab8; padding: 3px 12px; font-size: 12px; color: #2a4a6a; cursor: pointer; }
-        .guide-content { margin-top: 12px; font-size: 14px; line-height: 1.7; color: #111; }
+        .guide-header h3 { margin: 0; font-size: 14px; color: var(--window-left-text); }
+        .guide-toggle {
+            background: transparent; border: 1.5px solid var(--border-blue);
+            padding: 3px 12px; font-size: 12px; color: var(--window-left-text); cursor: pointer;
+        }
+        .guide-content { margin-top: 12px; font-size: 14px; line-height: 1.7; color: var(--text-primary); }
+        .guide-content h4 { color: var(--text-primary); margin-bottom: 4px; margin-top: 12px; }
+        .guide-content h4:first-child { margin-top: 0; }
 
-        .decision-info-box { border: 2px solid #9a7ab8; padding: 15px; margin-bottom: 20px; background-color: #f4f0fa; }
+        /* ── Інфо про замовлення ── */
+        .decision-info-box {
+            border: 2px solid var(--decision-info-box);
+            padding: 15px; margin-bottom: 20px;
+            background: var(--decision-info-box-bg);
+        }
+
         .decision-info-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-        .decision-info-header h3 { margin: 0; font-size: 14px; color: #111; }
-        .decision-info-toggle { background: transparent; border: 1.5px solid #9a7ab8; padding: 3px 12px; font-size: 12px; color: #4a2a6a; cursor: pointer; }
-        .decision-info-content { margin-top: 12px; font-size: 14px; color: #111; }
+        .decision-info-header h3 { margin: 0; font-size: 14px; color:  var(--decision-info-text); }
+
+        .decision-info-toggle {
+            background: transparent; border: 1.5px solid var(--decision-info-toggle);
+            padding: 3px 12px; font-size: 12px; color: var(--decision-info-toggle-padding); cursor: pointer;
+        }
+
+        .decision-info-content { margin-top: 12px; font-size: 14px; color: var(--text-primary); }
         .info-row { margin-bottom: 8px; }
-        .info-label { font-weight: 600; color: #111; margin-right: 6px; }
-        .info-alt-item { background: #fff; border: 1px solid #c8b8e0; padding: 6px 12px; margin-bottom: 6px; font-size: 13px; color: #111; }
-        .info-comments { background: #fff; border: 1px solid #c8b8e0; padding: 10px 12px; margin-top: 4px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: #111; }
+        .info-label { font-weight: 600; color: var(--text-primary); margin-right: 6px; }
+        .info-alt-item {
+            background: var(--bg-primary); border: 1px solid var(--info-alt-item);
+            padding: 6px 12px; margin-bottom: 6px; font-size: 13px; color: var(--text-primary);
+        }
+        .info-comments {
+            background: var(--bg-primary); border: 1px solid var(--info-alt-item);
+            padding: 10px 12px; margin-top: 4px; font-size: 13px;
+            line-height: 1.6; white-space: pre-wrap; color: var(--text-primary);
+        }
 
-        .main-params { margin-bottom: 16px; font-size: 14px; color: #111; }
-        .main-params label { margin-right: 16px; }
-        .main-params input { border: 1.5px solid #b0c4d8; padding: 5px 8px; font-size: 14px; background: #fff; color: #111; }
-        .main-params input:focus { border-color: #7a9ab8; outline: none; }
+        /* ── Основні параметри ── */
+        .main-params { margin-bottom: 16px; font-size: 14px; color: var(--text-primary); }
+        .main-params label { margin-right: 16px; color: var(--text-primary); }
+        .main-params input {
+            border: 1.5px solid var(--border-blue);
+            padding: 5px 8px; font-size: 14px;
+            background: var(--input-bg); color: var(--input-text);
+        }
+        .main-params input:focus { border-color: var(--border-blue); outline: none; }
 
-        /* Таблиця */
-        .table-wrap { overflow-x: auto; width: 100%; }
+        /* ── Таблиця ── */
+        .table-wrap { overflow-x: auto; width: 100%; max-width: 100vw; 
+        margin-top: 15px; border: 1px solid var(--table-border);
+        scrollbar-width: auto; scrollbar-color: var(--border-blue) transparent; }
+
+        /* Кастомний скролбар для Chrome, Edge, Safari, Opera */
+        .table-wrap::-webkit-scrollbar { height: 12px; }
+        .table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .table-wrap::-webkit-scrollbar-thumb { background: var(--border-blue); border-radius: 6px; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 0; table-layout: auto; }
-        th, td { border: 1.5px solid #333; padding: 8px 6px; text-align: center; color: #111; }
-        th { background-color: #dce8f0; color: #111; }
+        th, td { border: 1.5px solid var(--table-border); padding: 8px 6px; text-align: center; color: var(--text-primary); }
+        th { background: var(--table-header-bg); color: var(--text-primary); }
 
-        /* Колонка фактора */
         .factor-col-header { min-width: 200px; }
         .factor-col-header input[type="text"] {
-            width: 100%;
-            border: 1px solid #aaa;
-            padding: 4px 6px;
-            font-size: 13px;
-            background: #fff;
-            color: #111;
-            display: block;
-            margin-bottom: 6px;
+            width: 100%; border: 1px solid var(--border-input);
+            padding: 4px 6px; font-size: 13px;
+            background: var(--input-bg); color: var(--input-text);
+            display: block; margin-bottom: 6px;
         }
-        .factor-weight-row {
-            text-align: center;
-            font-size: 13px;
-            margin-bottom: 2px;
-        }
+        .factor-weight-row { text-align: center; font-size: 13px; margin-bottom: 2px; color: var(--text-primary); }
         .factor-weight-row input {
-            width: 100%;
-            border: 1px solid #aaa;
-            padding: 3px 5px;
-            font-size: 13px;
-            background: #fff;
-            color: #111;
-            display: block;
-            margin-top: 2px;
+            width: 100%; border: 1px solid var(--border-input);
+            padding: 3px 5px; font-size: 13px;
+            background: var(--input-bg); color: var(--input-text);
+            display: block; margin-top: 2px;
         }
 
-        /* Деталі фактора — підписи зверху по центру */
         .factor-detail-cell { min-width: 200px; }
-        .factor-detail-item {
-            text-align: center;
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: #111;
-            padding: 0 4px;
-        }
-        .factor-detail-item label {
-            display: block;
-            margin-bottom: 3px;
-            font-size: 13px;
-            color: #111;
-        }
+        .factor-detail-item { text-align: center; margin-bottom: 8px; font-size: 13px; color: var(--text-primary); padding: 0 4px; }
+        .factor-detail-item label { display: block; margin-bottom: 3px; font-size: 13px; color: var(--text-primary); }
         .factor-detail-item select {
-            width: 100%;
-            border: 1px solid #aaa;
-            padding: 3px 6px;
-            font-size: 13px;
-            background: #fff;
-            color: #111;
-            display: block;
+            width: 100%; border: 1px solid var(--border-input);
+            padding: 3px 6px; font-size: 13px;
+            background: var(--input-bg); color: var(--input-text); display: block;
         }
 
-        .score-input  { background-color: #fffacd; border: 1px solid #aaa; width: 100%; padding: 4px; font-size: 13px; color: #111; }
-        .raw-input    { background-color: #f0f8ff; border: 1px solid #aaa; width: 100%; padding: 4px; font-size: 13px; color: #111; }
+        .score-input {
+        width: 100%; padding: 4px; font-size: 13px;
+        background-color: var(--bg-active-score);
+        }
 
-        /* Кнопки */
-        .bottom-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 12px;
+        .raw-input {
+        width: 100%; padding: 4px; font-size: 13px;
+        background-color: var(--bg-active-raw);
         }
-        .btn-add-factor {
-            background: #e9edf2;
-            border: 1.5px solid #7a9ab8;
-            padding: 7px 16px;
-            font-size: 13px;
-            color: #111;
-            cursor: pointer;
+
+        .score-input[disabled], 
+        .raw-input[disabled],
+        input[disabled], textarea[disabled], select[disabled] {
+        background-color: var(--bg-disabled); 
+        color: var(--text-muted);
+        cursor: not-allowed;
+        border-color: var(--border-secondary);
         }
-        .btn-add-factor:hover { background: #dce8f0; }
+
+        /* ── Кнопки ── */
+        .bottom-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+
+        .btn-add-factor, .btn-add-alt {
+            background: var(--bg-secondary); border: 1.5px solid var(--border-blue);
+            padding: 7px 16px; font-size: 13px; color: var(--text-primary); cursor: pointer;
+        }
+        .btn-add-factor:hover, .btn-add-alt:hover { background: var(--window-left-body); }
 
         .btn-calculate {
-            background: #28a745;
-            border: none;
-            padding: 10px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
+            background: var(--btn-calculate); border: none;
+            padding: 10px 24px; font-size: 14px; font-weight: 600; color: white; cursor: pointer;
         }
-        .btn-calculate:hover { background: #218838; }
+        .btn-calculate:hover { background: var(--btn-calculate-hover); }
 
         .btn-remove {
-            background: transparent;
-            border: 1px solid #aaa;
-            padding: 2px 8px;
-            font-size: 12px;
-            cursor: pointer;
-            margin-top: 4px;
-            color: #111;
+            background: transparent; border: 1px solid var(--border-input);
+            padding: 2px 8px; font-size: 12px; cursor: pointer; margin-top: 4px; color: var(--text-primary);
         }
-        .btn-remove:hover { background: #f5dede; border-color: #c00; color: #900; }
+        .btn-remove:hover { background: var(--s-failed-bg); border-color: var(--s-failed-border); color: var(--s-failed-color); }
 
         .alt-name-input, .alt-risk-input {
-            border: 1px solid #aaa;
-            padding: 3px 6px;
-            font-size: 13px;
-            width: 90%;
-            color: #111;
-            background: #fff;
+            border: 1px solid var(--border-input); padding: 3px 6px; font-size: 13px;
+            width: 90%; color: var(--input-text); background: var(--input-bg);
         }
-
-        /* Кнопка додати альтернативу */
-        .btn-add-alt {
-            background: #e9edf2;
-            border: 1.5px solid #7a9ab8;
-            padding: 7px 16px;
-            font-size: 13px;
-            color: #111;
-            cursor: pointer;
-        }
-        .btn-add-alt:hover { background: #dce8f0; }
     </style>
 </head>
 <body>
 
     <nav class="navbar">
-        <span class="navbar-logo">Decision System</span>
+        <span class="navbar-logo" data-language="nav.logo">Decision Support System</span>
         <div class="navbar-right">
-            <span class="user-label">Адміністратор: <strong id="username">Admin123</strong></span>
-            <button class="btn-logout" onclick="logout()">Вийти</button>
+            <span class="user-label">
+                <span data-language="nav.role_admin">Аналітик</span>:
+                <strong id="username">Admin123</strong>
+            </span>
+            <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Toggle theme">
+                <i class="ti ti-moon" aria-hidden="true"></i>
+            </button>
+            <button class="btn-lang" id="btn-lang" onclick="toggleLang()">EN</button>
+            <button class="btn-logout" onclick="logout()" data-language="nav.logout">Вийти</button>
         </div>
     </nav>
 
     <div class="container">
+
+        <!-- Гайд -->
         <div class="guide-box">
             <div class="guide-header" onclick="toggleGuide()">
-                <h3>Інструкція</h3>
-                <button class="guide-toggle" id="guide-toggle-btn">Сховати</button>
+                <h3 data-language="calculate.guide_title">Інструкція</h3>
+                <button class="guide-toggle" id="guide-toggle-btn" data-language="calculate.guide_hide">Сховати</button>
             </div>
             <div class="guide-content" id="guide-content">
-                <h4>Уніфікація Сирих Значень</h4>
-                <p>Усі сирі значення повинні бути уніфіковані перед обробкою системою. Наприклад, числові дані одного типу повинні використовувати однаковий формат представлення.</p>
-                <h4>Об'єктивні vs. Суб'єктивні Фактори</h4>
-                <p><b>OBJECTIVE</b>: Вимірюється фізичними величинами. Ви вводите "Raw Value". Поле "Score" буде заблоковано.<br>
+                <h4 data-language="calculate.guide_raw_title">Уніфікація Сирих Значень</h4>
+                <p data-language="calculate.guide_raw_desc">Усі сирі значення повинні бути уніфіковані перед обробкою системою.</p>
+                <h4 data-language="calculate.guide_types_title">Об'єктивні vs. Суб'єктивні Фактори</h4>
+                <p data-language="calculate.guide_types_desc" data-html><b>OBJECTIVE</b>: Вимірюється фізичними величинами. Ви вводите "Raw Value". Поле "Score" буде заблоковано.<br>
                 <b>SUBJECTIVE</b>: Оцінюється експертом. Ви вводите "Score" (від 0 до Max Score). Поле "Raw Value" буде заблоковано.</p>
-                <h4>Напрямок Фактора (Зростає?)</h4>
-                <p><b>true</b>: Більше - краще (Якість, Продуктивність).<br>
-                <b>false</b>: Менше - краще (Ціна, Час доставки).</p>
+                <h4 data-language="calculate.guide_dir_title">Напрямок Фактора (Зростає?)</h4>
+                <p data-language="calculate.guide_dir_desc" data-html><b>true</b>: Більше — краще (Якість, Продуктивність).<br>
+                <b>false</b>: Менше — краще (Ціна, Час доставки).</p>
             </div>
         </div>
 
+        <!-- Інфо про замовлення -->
         <div class="decision-info-box">
             <div class="decision-info-header" onclick="toggleDecisionInfo()">
-                <h3>Інформація про замовлення інвестора</h3>
-                <button class="decision-info-toggle" id="info-toggle-btn">Сховати</button>
+                <h3 data-language="calculate.info_title">Інформація про замовлення інвестора</h3>
+                <button class="decision-info-toggle" id="info-toggle-btn" data-language="calculate.guide_hide">Сховати</button>
             </div>
             <div class="decision-info-content" id="decision-info-content">
-                <div class="info-row"><span class="info-label">Логін інвестора:</span><span id="info-login">User123</span></div>
-                <div class="info-row"><span class="info-label">Email:</span><span id="info-email">user123@example.com</span></div>
-                <div class="info-row"><span class="info-label">Назва рішення:</span><span id="info-decision-name">Select Best Supplier</span></div>
+                <!-- TODO: підтягувати з беку по decisionId -->
                 <div class="info-row">
-                    <span class="info-label">Альтернативи інвестора:</span>
+                    <span class="info-label" data-language="calculate.info_investor_login">Логін інвестора:</span>
+                    <span id="info-login">User123</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label" data-language="calculate.info_email">Email:</span>
+                    <span id="info-email">user123@example.com</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label" data-language="calculate.info_decision_name">Назва рішення:</span>
+                    <span id="info-decision-name">Select Best Supplier</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label" data-language="calculate.info_alts">Альтернативи інвестора:</span>
                     <div id="info-alts">
                         <div class="info-alt-item">Supplier A — ризик: 0.20</div>
                         <div class="info-alt-item">Supplier B — ризик: 0.15</div>
@@ -225,40 +228,52 @@
                     </div>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Коментарі / побажання:</span>
-                    <div class="info-comments" id="info-comments">Хочу порівняти постачальників за ціною, якістю та швидкістю доставки. Ціна найважливіша (вага 0.5), якість середня (0.3), швидкість менш важлива (0.2).</div>
+                    <span class="info-label" data-language="calculate.info_comments">Коментарі / побажання:</span>
+                    <div class="info-comments" id="info-comments">Хочу порівняти постачальників за ціною, якістю та швидкістю доставки.</div>
                 </div>
             </div>
         </div>
 
+        <!-- Основні параметри -->
         <div class="main-params">
-            <label>Назва Рішення: <input type="text" id="decisionName" value="Select Best Supplier"></label>
-            <label>Метод: <input type="text" id="method" value="METHOD_WS_RISK" disabled></label>
-            <label>Макс. Бал (Max Score): <input type="number" id="maxScore" value="100" min="1" onchange="validateAllScores()"></label>
+            <label>
+                <span data-language="calculate.decision_name">Назва Рішення</span>:
+                <input type="text" id="decisionName" value="Select Best Supplier">
+            </label>
+            <label>
+                <span data-language="calculate.method">Метод</span>:
+                <input type="text" id="method" value="METHOD_WS_RISK" disabled>
+            </label>
+            <label>
+                <span data-language="calculate.max_score">Макс. Бал (Max Score)</span>:
+                <input type="number" id="maxScore" value="100" min="1" onchange="validateAllScores()">
+            </label>
         </div>
 
+        <!-- Таблиця -->
         <div class="table-wrap">
             <table id="decisionTable">
                 <thead>
-                    <tr id="factorRow"><th rowspan="3" style="min-width:160px;color:#111;">Альтернатива / Параметр</th></tr>
+                    <tr id="factorRow">
+                        <th rowspan="3" style="min-width:160px;" data-language="calculate.col_alt_param">Альтернатива / Параметр</th>
+                    </tr>
                     <tr id="factorDetailRow"></tr>
                     <tr id="valueHeaderRow"></tr>
                 </thead>
                 <tbody id="alternativesBody"></tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="100" style="text-align:left; border:1.5px solid #333;">
-                            <button class="btn-add-alt" onclick="addAlternative()">+ Додати Альтернативу</button>
+                        <td colspan="100" style="text-align:left;">
+                            <button class="btn-add-alt" onclick="addAlternative()" data-language="calculate.add_alt">+ Додати Альтернативу</button>
                         </td>
                     </tr>
                 </tfoot>
             </table>
         </div>
 
-        <!-- Кнопки знизу як в оригіналі -->
         <div class="bottom-actions">
-            <button class="btn-add-factor" onclick="addFactor()">+ Додати Фактор</button>
-            <button class="btn-calculate" onclick="sendDecisionRequest()">Розрахувати Рішення</button>
+            <button class="btn-add-factor" onclick="addFactor()" data-language="calculate.add_factor">+ Додати Фактор</button>
+            <button class="btn-calculate" onclick="sendDecisionRequest()" data-language="calculate.calculate_btn">Розрахувати Рішення</button>
         </div>
     </div>
 
@@ -284,7 +299,7 @@ function toggleGuide() {
     const b = document.getElementById('guide-toggle-btn');
     const hidden = c.style.display === 'none';
     c.style.display = hidden ? 'block' : 'none';
-    b.textContent = hidden ? 'Сховати' : 'Показати';
+    b.textContent = hidden ? t('calculate.guide_hide') : t('calculate.guide_show');
 }
 
 function toggleDecisionInfo() {
@@ -292,7 +307,7 @@ function toggleDecisionInfo() {
     const b = document.getElementById('info-toggle-btn');
     const hidden = c.style.display === 'none';
     c.style.display = hidden ? 'block' : 'none';
-    b.textContent = hidden ? 'Сховати' : 'Показати';
+    b.textContent = hidden ? t('calculate.guide_hide') : t('calculate.guide_show');
 }
 
 function validateScore(input) {
@@ -315,10 +330,8 @@ function updateFactorInputState(factorIndex) {
         const rawInput   = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-raw`);
         const scoreInput = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-score`);
         if (rawInput && scoreInput) {
-            rawInput.disabled  = !isObjective;
-            rawInput.style.backgroundColor  = isObjective ? '#f0f8ff' : '#eee';
+            rawInput.disabled   = !isObjective;
             scoreInput.disabled = isObjective;
-            scoreInput.style.backgroundColor = isObjective ? '#eee' : '#fffacd';
             if (isObjective)  scoreInput.value = '';
             else              rawInput.value   = '';
         }
@@ -331,7 +344,16 @@ function renderTable() {
     const valueHeaderRow   = document.getElementById('valueHeaderRow');
     const alternativesBody = document.getElementById('alternativesBody');
 
-    factorRow.innerHTML        = '<th rowspan="3" style="min-width:160px;color:#111;">Альтернатива / Параметр</th>';
+    const altParamLabel = t('calculate.col_alt_param') || 'Альтернатива / Параметр';
+    const typeLabel     = t('calculate.col_type')      || 'Тип';
+    const growsLabel    = t('calculate.col_grows')     || 'Зростає?';
+    const growsYes      = t('calculate.grows_yes')     || 'Так (більше краще)';
+    const growsNo       = t('calculate.grows_no')      || 'Ні (менше краще)';
+    const weightLabel   = t('calculate.col_weight')    || 'Вага';
+    const nameLabel     = t('calculate.col_name')      || 'Назва';
+    const riskLabel     = t('calculate.col_risk')      || 'Ризик';
+
+    factorRow.innerHTML        = `<th rowspan="3" style="min-width:160px;">${altParamLabel}</th>`;
     factorDetailRow.innerHTML  = '';
     valueHeaderRow.innerHTML   = '';
     alternativesBody.innerHTML = '';
@@ -339,10 +361,10 @@ function renderTable() {
     factors.forEach((f, fIndex) => {
         factorRow.innerHTML += `
             <th colspan="2" class="factor-col-header">
-                <input type="text" id="factor-name-${fIndex}" value="${f.name}" placeholder="Назва Фактора"
+                <input type="text" id="factor-name-${fIndex}" value="${f.name}" placeholder="${nameLabel}"
                     onchange="factors[${fIndex}].name = this.value">
                 <div class="factor-weight-row">
-                    Вага:
+                    ${weightLabel}:
                     <input type="number" id="factor-weight-${fIndex}" value="${f.factorWeight}"
                         step="0.01" min="0" max="1"
                         onchange="factors[${fIndex}].factorWeight = parseFloat(this.value)">
@@ -352,7 +374,7 @@ function renderTable() {
         factorDetailRow.innerHTML += `
             <td colspan="2" class="factor-detail-cell">
                 <div class="factor-detail-item">
-                    <label>Тип:</label>
+                    <label>${typeLabel}:</label>
                     <select id="factor-type-${fIndex}"
                         onchange="factors[${fIndex}].type = this.value; updateFactorInputState(${fIndex})">
                         <option value="OBJECTIVE"  ${f.type === 'OBJECTIVE'  ? 'selected' : ''}>OBJECTIVE</option>
@@ -360,24 +382,26 @@ function renderTable() {
                     </select>
                 </div>
                 <div class="factor-detail-item">
-                    <label>Зростає?</label>
+                    <label>${growsLabel}?</label>
                     <select onchange="factors[${fIndex}].isGrowing = (this.value === 'true')">
-                        <option value="true"  ${f.isGrowing  ? 'selected' : ''}>Так (більше краще)</option>
-                        <option value="false" ${!f.isGrowing ? 'selected' : ''}>Ні (менше краще)</option>
+                        <option value="true"  ${f.isGrowing  ? 'selected' : ''}>${growsYes}</option>
+                        <option value="false" ${!f.isGrowing ? 'selected' : ''}>${growsNo}</option>
                     </select>
                 </div>
                 <button class="btn-remove" onclick="removeFactor(${fIndex})">X</button>
             </td>`;
 
-        valueHeaderRow.innerHTML += '<th style="color:#111;">Raw Value</th><th style="color:#111;">Score</th>';
+        valueHeaderRow.innerHTML += `<th>Raw Value</th><th>Score</th>`;
     });
 
     alternatives.forEach((alt, altIndex) => {
-        let row = `<tr id="alternative-${altIndex}" class="alternative-row">
+        let row = `<tr id="alternative-${altIndex}">
             <td>
-                Назва:<br><input class="alt-name-input" type="text" value="${alt.name}"
+                ${nameLabel}:<br>
+                <input class="alt-name-input" type="text" value="${alt.name}"
                     onchange="alternatives[${altIndex}].name = this.value"><br>
-                Ризик:<br><input class="alt-risk-input" type="number" value="${alt.riskCoefficient}"
+                ${riskLabel}:<br>
+                <input class="alt-risk-input" type="number" value="${alt.riskCoefficient}"
                     step="0.01" min="0" max="1"
                     onchange="alternatives[${altIndex}].riskCoefficient = parseFloat(this.value)">
                 <button class="btn-remove" onclick="removeAlternative(${altIndex})">X</button>
@@ -394,13 +418,11 @@ function renderTable() {
                     id="alt-${altIndex}-factor-${fIndex}-raw"
                     value="${rawValue}"
                     ${!isObjective ? 'disabled' : ''}
-                    style="background-color:${!isObjective ? '#eee' : '#f0f8ff'}"
                     onchange="updateAlternativeValue(${altIndex}, '${f.name}', 'rawValue', parseFloat(this.value))"></td>
                 <td><input type="number" class="score-input"
                     id="alt-${altIndex}-factor-${fIndex}-score"
                     value="${scoreValue}" min="0"
                     ${isObjective ? 'disabled' : ''}
-                    style="background-color:${isObjective ? '#eee' : '#fffacd'}"
                     onchange="validateScore(this); updateAlternativeValue(${altIndex}, '${f.name}', 'score', parseFloat(this.value))"></td>`;
         });
 
@@ -465,7 +487,7 @@ function buildRequestPayload() {
 }
 
 async function sendDecisionRequest() {
-    const payload = buildRequestPayload();
+    const payload  = buildRequestPayload();
     const ENDPOINT = 'http://localhost:8081/api/decisions/make-decision';
     try {
         const response = await fetch(ENDPOINT, {
@@ -486,11 +508,13 @@ async function sendDecisionRequest() {
 }
 
 function logout() {
-    // TODO: localStorage.removeItem('token');
     window.location.href = 'index.html';
 }
 
-window.onload = renderTable;
+// Перерендер при зміні мови
+document.addEventListener('langChanged', renderTable);
+// Початковий рендер
+document.addEventListener('langChanged', renderTable, { once: true });
 </script>
 </body>
 </html>

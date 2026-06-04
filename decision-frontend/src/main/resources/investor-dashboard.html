@@ -19,42 +19,28 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
-    body { font-family: system-ui, sans-serif; background: var(--bg-page); min-height: 100vh; }
-
-    .navbar {
-      background: var(--navbar-bg); padding: 14px 32px;
-      display: flex; justify-content: space-between; align-items: center; gap: 16px;
-    }
-    .navbar-logo { font-size: 16px; font-weight: 500; color: var(--navbar-text); }
-    .navbar-right { display: flex; align-items: center; gap: 12px; }
-    .user-label { font-size: 14px; color: var(--navbar-text); }
-    .user-label strong { color: var(--navbar-strong); }
-    .btn-logout {
-      background: transparent; border: 1.5px solid var(--navbar-border);
-      padding: 6px 18px; font-size: 14px; color: var(--navbar-text); cursor: pointer;
-    }
-    .btn-logout:hover { background: rgba(255,255,255,0.07); }
 
     .main { padding: 28px 32px; }
 
     .create-section { background: var(--create-bg); padding: 20px 24px; margin-bottom: 20px; }
     .create-btn {
       display: flex; align-items: center; gap: 14px;
-      background: var(--bg-primary); border: 1.5px solid var(--border-card);
+      background: var(--bg-tertiary); border: 1.5px solid var(--border-card);
       padding: 14px 20px; cursor: pointer; text-decoration: none; width: fit-content;
     }
     .create-btn:hover { border-color: #7a9ab8; background: var(--bg-secondary); }
-    .create-icon { width: 40px; height: 40px; background: #dce4f0; display: flex; align-items: center; justify-content: center; }
+    .create-icon { width: 40px; height: 40px; background: #dce4f0; display: flex; 
+      align-items: center; justify-content: center; border: 1.5px solid var(--border-card);}
     .create-icon i { font-size: 20px; color: #4a6a90; }
     .create-label { font-size: 15px; font-weight: 500; color: var(--text-primary); }
 
-    .decisions-section { background: var(--bg-tertiary); border: 2px solid var(--border-main); padding: 20px 24px; }
+    .decisions-section { background: var(--bg-tertiary); border: 2px solid var(--border-card); padding: 20px 24px; }
     .decisions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 16px; }
-    .section-title { font-size: 12px; color: var(--text-label); text-transform: uppercase; letter-spacing: 0.06em; }
+    .section-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
 
     .search-box {
       display: flex; align-items: center;
-      background: var(--input-bg); border: 1.5px solid var(--border-main);
+      background: var(--input-bg); border: 1.5px solid var(--border-card);
     }
     .search-box i { padding: 0 10px; font-size: 16px; color: var(--text-muted); }
     .search-box input {
@@ -92,10 +78,10 @@
       font-size: 12px; padding: 4px 12px;
       font-weight: 500; white-space: nowrap; border: 1.5px solid;
     }
-    .s-draft       { background: var(--draft-bg);  color: var(--draft-color);  border-color: var(--draft-border); }
-    .s-calculating { background: var(--calc-bg);   color: var(--calc-color);   border-color: var(--calc-border); }
-    .s-calculated  { background: var(--done-bg);   color: var(--done-color);   border-color: var(--done-border); }
-    .s-failed      { background: var(--failed-bg);   color: var(--failed-color);   border-color: var(--failed-border); }
+    .s-draft       { background: var(--s-draft-bg);  color: var(--s-draft-color);  border-color: var(--s-raft-border); }
+    .s-calculating { background: var(--s-calc-bg);   color: var(--s-calc-color);   border-color: var(--s-calc-border); }
+    .s-calculated  { background: var(--s-done-bg);   color: var(--s-done-color);   border-color: var(--s-done-border); }
+    .s-failed      { background: var(--s-failed-bg);   color: var(--s-failed-color);   border-color: var(--s-failed-border); }
 
     .chevron { font-size: 16px; color: var(--text-muted); }
 
@@ -109,11 +95,11 @@
       background: var(--modal-bg); border: 2px solid; padding: 28px 32px;
       max-width: 420px; width: 90%;
     }
-    .modal-calculating { border-color: var(--calc-border); }
-    .modal-failed      { border-color: var(--fail-border); }
+    .modal-calculating { border-color: var(--s-calc-border);}
+    .modal-failed      { border-color: var(--s-failed-border); }
     .modal-title { font-size: 15px; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
-    .modal-calculating .modal-title { color: var(--calc-color); }
-    .modal-failed      .modal-title { color: var(--fail-color); }
+    .modal-calculating .modal-title { color: var(--s-calc-color); }
+    .modal-failed      .modal-title { color: var(--s-failed-color); }
     .modal-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 20px; }
     .modal-close {
       background: var(--bg-secondary); border: 1.5px solid var(--border-card);
