@@ -2,6 +2,7 @@ package com.risk.decision.repository;
 
 
 import com.risk.decision.dto.*;
+import com.risk.decision.model.Alternative;
 import com.risk.decision.model.CalculationMethod;
 import com.risk.decision.model.Decision;
 import com.risk.decision.model.Evaluation;
@@ -26,7 +27,7 @@ public interface DecisionMapper {
     @Mapping(target = "decision", ignore = true)
     @Mapping(target = "calculationResult", ignore = true)
     @Mapping(target = "evaluations", source = "values")
-    com.risk.decision.model.Alternative toAlternative(com.risk.decision.dto.Alternative alternativeDto);
+    Alternative toAlternative(AlternativeRequest alternativeRequestDto);
 
     // FactorParams DTO (Source) -> Factor Entity (Target)
     @Mapping(target = "id", ignore = true)
@@ -37,7 +38,6 @@ public interface DecisionMapper {
     Factor toFactor(FactorParams factorParams);
 
     // EvaluationValue DTO (Source) -> Evaluation Entity (Target)
-    @Mapping(target = "id", ignore = true)
     @Mapping(target = "alternative", ignore = true)
     @Mapping(target = "factor", ignore = true)
     Evaluation toEvaluation(EvaluationValue evaluationValue);

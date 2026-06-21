@@ -13,7 +13,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate.format_sql: true
@@ -39,3 +39,8 @@ logging:
   level:
     org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
+
+app:
+  services:
+    user-service-url: "http://user-service"
+    calculation-service-url: "http://calculation-service"

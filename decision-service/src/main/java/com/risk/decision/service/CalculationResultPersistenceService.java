@@ -1,8 +1,9 @@
 package com.risk.decision.service;
 
-
-import com.risk.dto.AlternativeResult;
-import com.risk.dto.CalculationResponse;
+import com.risk.api.dto.CalculationAlternativeResult;
+import com.risk.decision.model.Alternative;
+import com.risk.decision.dto.AlternativeResponse;
+import com.risk.api.dto.CalculationResponse;
 import com.risk.decision.model.CalculationResult;
 import com.risk.decision.model.Decision;
 import com.risk.decision.repository.AlternativeRepository;
@@ -27,6 +28,7 @@ public class CalculationResultPersistenceService {
     private final AlternativeRepository alternativeRepository;
     private final CalculationResultRepository calculationResultRepository;
 
+
     // Не будемо впроваджувати DecisionResultProcessor тут,
     // оскільки цей сервіс відповідає лише за ЗБЕРЕЖЕННЯ.
 
@@ -46,13 +48,13 @@ public class CalculationResultPersistenceService {
 
         // 2. Пошук Alternative Entities (оптимізація: шукаємо всі альтернативи одразу)
         List<Integer> alternativeIds = response.results().stream()
-                .map(AlternativeResult::alternativeId)
+                .map(CalculationAlternativeResult::alternativeId)
                 .toList();
 
         // Створюємо мапу ID -> Alternative для швидкого доступу
-        Map<Integer, com.risk.decision.model.Alternative> alternativeMap = alternativeRepository.findAllById(alternativeIds)
+        Map<Integer, Alternative> alternativeMap = alternativeRepository.findAllById(alternativeIds)
                 .stream()
-                .collect(Collectors.toMap(com.risk.decision.model.Alternative::getId, alt -> alt));
+                .collect(Collectors.toMap(Alternative::getId, alt -> alt));
 
         if (alternativeMap.size() != alternativeIds.size()) {
             // Це свідчить про те, що деякі Alternative ID з DTO не були знайдені в БД.
@@ -63,9 +65,9 @@ public class CalculationResultPersistenceService {
         List<CalculationResult> resultsToSave = new ArrayList<>();
 
         // 3. Мапінг та збирання CalculationResult Entities
-        for (AlternativeResult altResult : response.results()) {
+        for (CalculationAlternativeResult altResult : response.results()) {
 
-            com.risk.decision.model.Alternative alternative = alternativeMap.get(altResult.alternativeId());
+            Alternative alternative = alternativeMap.get(altResult.alternativeId());
 
             CalculationResult entity = CalculationResult.builder()
                     // Decision та Alternative встановлюються як об'єкти
@@ -83,7 +85,10 @@ public class CalculationResultPersistenceService {
 
             // Встановлюємо зворотний зв'язок на Alternative Entity (не обов'язково для збереження,
             // але корисно для повноти ORM-графу, якщо транзакція триває)
-            alternative.setCalculationResult(entity);
+            if (alternative.getCalculationResults() == null) {
+                alternative.setCalculationResults(new ArrayList<>());
+            }
+            alternative.getCalculationResults().add(entity);
         }
 
         // 4. Збереження всіх результатів

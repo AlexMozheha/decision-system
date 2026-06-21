@@ -108,7 +108,6 @@ window.addEventListener('storage', async (event) => {
   }
 });
 
-// 💡 Фікс для кнопки "Назад" у браузері (примусове оновлення з bfcache)
 window.addEventListener('pageshow', (event) => {
   // event.persisted означає, що сторінка дістається з кешу пам'яті
   if (event.persisted) {

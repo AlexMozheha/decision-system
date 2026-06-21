@@ -1,7 +1,7 @@
 package com.risk.decision.repository;
 
-import com.risk.dto.AlternativeResult;
-import com.risk.dto.CalculationResponse;
+import com.risk.api.dto.CalculationAlternativeResult;
+import com.risk.api.dto.CalculationResponse;
 import com.risk.decision.dto.CalculatedAltDto;
 import com.risk.decision.dto.DecisionCalculationData;
 import com.risk.decision.service.AlternativeService;
@@ -21,7 +21,7 @@ public interface CalculationToDecisionMapper {
     ) {
 
         List<Integer> alternativeIds = response.results().stream()
-                .map(AlternativeResult::alternativeId)
+                .map(CalculationAlternativeResult::alternativeId)
                 .toList();
 
         Map<Integer, String> alternativeNames = alternativeService.preloadAlternativeNames(alternativeIds);

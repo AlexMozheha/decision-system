@@ -264,7 +264,7 @@
       const name = document.getElementById('decision-name').value.trim();
       const comments = document.getElementById('comments').value.trim();
 
-      const alternatives = Array.from(document.querySelectorAll('.alt-item')).map(item => ({
+      const altCalculationDtos = Array.from(document.querySelectorAll('.alt-item')).map(item => ({
         name: item.querySelector('.alt-name-input').value.trim(),
         risk: parseInt(item.querySelector('.risk-input').value) || null
       }));
@@ -274,10 +274,10 @@
       // fetch('/api/decisions', {
       //   method: 'POST',
       //   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      //   body: JSON.stringify({ name, comments, alternatives, status: 'DRAFT' })
+      //   body: JSON.stringify({ name, comments, altCalculationDtos, status: 'DRAFT' })
       // }).then(() => window.location.href = 'investor-dashboard.html');
 
-      console.log({ name, comments, alternatives, status: 'DRAFT' });
+      console.log({ name, comments, altCalculationDtos, status: 'DRAFT' });
     }
 
     function logout() {

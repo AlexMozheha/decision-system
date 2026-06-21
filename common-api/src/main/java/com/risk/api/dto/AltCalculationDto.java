@@ -1,4 +1,4 @@
-package com.risk.dto;
+package com.risk.api.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
 
-public record Alternative(
+public record AltCalculationDto(
         @Min(value = 1, message = "Alternative ID must be positive")
         int alternativeId,
 

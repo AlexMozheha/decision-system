@@ -284,15 +284,15 @@ let factors = [
     { name: 'DeliverySpeed', unitOfMeasure: 'days',   type: 'OBJECTIVE',  factorWeight: 0.2, isGrowing: false }
 ];
 
-let alternatives = [
+let altCalculationDtos = [
     { name: 'Supplier A', description: '', riskCoefficient: 0.2,  values: {} },
     { name: 'Supplier B', description: '', riskCoefficient: 0.15, values: {} },
     { name: 'Supplier C', description: '', riskCoefficient: 0.25, values: {} }
 ];
 
-alternatives[0].values = { 'Price': { rawValue: 1200, score: null }, 'Quality': { rawValue: 8, score: null }, 'DeliverySpeed': { rawValue: 5, score: null } };
-alternatives[1].values = { 'Price': { rawValue: 900,  score: null }, 'Quality': { rawValue: 6, score: null }, 'DeliverySpeed': { rawValue: 7, score: null } };
-alternatives[2].values = { 'Price': { rawValue: 1000, score: null }, 'Quality': { rawValue: 7, score: null }, 'DeliverySpeed': { rawValue: 3, score: null } };
+altCalculationDtos[0].values = { 'Price': { rawValue: 1200, score: null }, 'Quality': { rawValue: 8, score: null }, 'DeliverySpeed': { rawValue: 5, score: null } };
+altCalculationDtos[1].values = { 'Price': { rawValue: 900,  score: null }, 'Quality': { rawValue: 6, score: null }, 'DeliverySpeed': { rawValue: 7, score: null } };
+altCalculationDtos[2].values = { 'Price': { rawValue: 1000, score: null }, 'Quality': { rawValue: 7, score: null }, 'DeliverySpeed': { rawValue: 3, score: null } };
 
 function toggleGuide() {
     const c = document.getElementById('guide-content');
@@ -326,7 +326,7 @@ function updateFactorInputState(factorIndex) {
     const el = document.getElementById(`factor-type-${factorIndex}`);
     if (!el) return;
     const isObjective = el.value === 'OBJECTIVE';
-    alternatives.forEach((alt, altIndex) => {
+    altCalculationDtos.forEach((alt, altIndex) => {
         const rawInput   = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-raw`);
         const scoreInput = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-score`);
         if (rawInput && scoreInput) {
@@ -394,16 +394,16 @@ function renderTable() {
         valueHeaderRow.innerHTML += `<th>Raw Value</th><th>Score</th>`;
     });
 
-    alternatives.forEach((alt, altIndex) => {
+    altCalculationDtos.forEach((alt, altIndex) => {
         let row = `<tr id="alternative-${altIndex}">
             <td>
                 ${nameLabel}:<br>
                 <input class="alt-name-input" type="text" value="${alt.name}"
-                    onchange="alternatives[${altIndex}].name = this.value"><br>
+                    onchange="altCalculationDtos[${altIndex}].name = this.value"><br>
                 ${riskLabel}:<br>
                 <input class="alt-risk-input" type="number" value="${alt.riskCoefficient}"
                     step="0.01" min="0" max="1"
-                    onchange="alternatives[${altIndex}].riskCoefficient = parseFloat(this.value)">
+                    onchange="altCalculationDtos[${altIndex}].riskCoefficient = parseFloat(this.value)">
                 <button class="btn-remove" onclick="removeAlternative(${altIndex})">X</button>
             </td>`;
 
@@ -436,34 +436,34 @@ function renderTable() {
 function addFactor() {
     const newName = `Factor ${factors.length + 1}`;
     factors.push({ name: newName, unitOfMeasure: 'N/A', type: 'OBJECTIVE', factorWeight: 0.1, isGrowing: true });
-    alternatives.forEach(alt => { alt.values[newName] = { rawValue: 0, score: null }; });
+    altCalculationDtos.forEach(alt => { alt.values[newName] = { rawValue: 0, score: null }; });
     renderTable();
 }
 
 function removeFactor(index) {
     const factorName = factors[index].name;
     factors.splice(index, 1);
-    alternatives.forEach(alt => { delete alt.values[factorName]; });
+    altCalculationDtos.forEach(alt => { delete alt.values[factorName]; });
     renderTable();
 }
 
 function addAlternative() {
     let newValues = {};
     factors.forEach(f => { newValues[f.name] = { rawValue: null, score: null }; });
-    alternatives.push({ name: `Alternative ${alternatives.length + 1}`, description: '', riskCoefficient: 0.0, values: newValues });
+    altCalculationDtos.push({ name: `Alternative ${altCalculationDtos.length + 1}`, description: '', riskCoefficient: 0.0, values: newValues });
     renderTable();
 }
 
 function removeAlternative(index) {
-    alternatives.splice(index, 1);
+    altCalculationDtos.splice(index, 1);
     renderTable();
 }
 
 function updateAlternativeValue(altIndex, factorName, type, value) {
-    if (!alternatives[altIndex].values[factorName]) {
-        alternatives[altIndex].values[factorName] = { rawValue: null, score: null };
+    if (!altCalculationDtos[altIndex].values[factorName]) {
+        altCalculationDtos[altIndex].values[factorName] = { rawValue: null, score: null };
     }
-    alternatives[altIndex].values[factorName][type] = value;
+    altCalculationDtos[altIndex].values[factorName][type] = value;
 }
 
 function buildRequestPayload() {
@@ -475,7 +475,7 @@ function buildRequestPayload() {
             name: f.name, unitOfMeasure: f.unitOfMeasure, type: f.type,
             description: '', factorWeight: f.factorWeight, isGrowing: f.isGrowing
         })),
-        alternatives: alternatives.map(alt => ({
+        altCalculationDtos: altCalculationDtos.map(alt => ({
             name: alt.name, description: alt.description, riskCoefficient: alt.riskCoefficient,
             values: factors.map(f => ({
                 factorName: f.name,

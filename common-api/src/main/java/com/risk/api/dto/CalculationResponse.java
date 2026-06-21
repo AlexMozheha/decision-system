@@ -1,4 +1,4 @@
-package com.risk.dto;
+package com.risk.api.dto;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 public record CalculationResponse(
         int decisionId,
         ZonedDateTime calculatedAt,
-        List<AlternativeResult> results) {
+        List<CalculationAlternativeResult> results) {
 
     public CalculationResponse{
         if (calculatedAt == null) {

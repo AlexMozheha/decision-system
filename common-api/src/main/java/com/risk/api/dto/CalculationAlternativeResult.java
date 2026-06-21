@@ -1,8 +1,8 @@
-package com.risk.dto;
+package com.risk.api.dto;
 
 import java.math.BigDecimal;
 
-public record AlternativeResult(
+public record CalculationAlternativeResult(
         int alternativeId,
         BigDecimal weightedScore,
         BigDecimal riskAdjustedScore,

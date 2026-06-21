@@ -1,6 +1,9 @@
 package com.risk.decision.service;
 
-import com.risk.decision.dto.*;
+import com.risk.decision.dto.AlternativeResponse;
+import com.risk.decision.dto.CalculatedAltDto;
+import com.risk.decision.dto.DecisionCalculationData;
+import com.risk.decision.dto.DecisionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +27,7 @@ public class DecisionResultProcessor {
 
         BigDecimal RECOMMENDATION_THRESHOLD = maxWeightedRiskAdjustedScore.multiply(new BigDecimal("0.70"));
 
-        List<AlternativeResult> finalResults = data.results().stream()
+        List<AlternativeResponse> finalResults = data.results().stream()
                 .map(calcAlt -> {
 
                     BigDecimal normRisk = calcAlt.normalizedRisk();
@@ -34,7 +37,7 @@ public class DecisionResultProcessor {
 
                     boolean isRecommended = finalScore.compareTo(RECOMMENDATION_THRESHOLD) >= 0;
 
-                    return new AlternativeResult(
+                    return new AlternativeResponse(
                             calcAlt.name(),
                             calcAlt.weightedScore(),
                             finalScore,
@@ -44,8 +47,8 @@ public class DecisionResultProcessor {
                 })
                 .collect(Collectors.toList());
 
-        List<AlternativeResult> rankedAlternatives = finalResults.stream()
-                .sorted(Comparator.comparing(AlternativeResult::riskAdjustedScore).reversed())
+        List<AlternativeResponse> rankedAlternatives = finalResults.stream()
+                .sorted(Comparator.comparing(AlternativeResponse::riskAdjustedScore).reversed())
                 .toList();
 
         return new DecisionResponse(

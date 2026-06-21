@@ -1,4 +1,4 @@
-package com.risk.dto;
+package com.risk.api.dto;
 
 import com.risk.enums.CalculationMethodType;
 import jakarta.validation.Valid;
@@ -31,12 +31,12 @@ public record CalculationRequest(
         @NotNull(message = "Alternatives list cannot be null")
         @Size(min = 1, message = "At least one alternative is required")
         @Valid
-        List<Alternative> alternatives
+        List<AltCalculationDto> altCalculationDtos
 ) {
 
     public Map<Integer, List<BigDecimal>> getRawValuesGroupedByFactor() {
 
-        return this.alternatives().stream()
+        return this.altCalculationDtos().stream()
                 .flatMap(alternative -> alternative.values().stream())
 
                 .collect(Collectors.groupingBy(

@@ -1,4 +1,4 @@
-package com.risk.dto;
+package com.risk.api.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;

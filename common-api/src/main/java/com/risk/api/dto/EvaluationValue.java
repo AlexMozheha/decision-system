@@ -1,7 +1,7 @@
-package com.risk.dto;
+package com.risk.api.dto;
 
-import com.risk.validation.EvalValueForValidation;
-import com.risk.validation.MutuallyExclusive;
+import com.risk.api.validation.EvalValueForValidation;
+import com.risk.api.validation.MutuallyExclusive;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 

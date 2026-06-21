@@ -1,8 +1,8 @@
 package com.risk.calculation.controller;
 
 
-import com.risk.dto.CalculationRequest;
-import com.risk.dto.CalculationResponse;
+import com.risk.api.dto.CalculationRequest;
+import com.risk.api.dto.CalculationResponse;
 import com.risk.calculation.service.CalculationCoordinator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class CalculationController {
     @PostMapping("/calculate")
     public CalculationResponse calculateDecisionScore(@Valid @RequestBody CalculationRequest request) {
 
-        if (request.alternatives() == null || request.alternatives().isEmpty()) {
+        if (request.altCalculationDtos() == null || request.altCalculationDtos().isEmpty()) {
             throw new IllegalArgumentException("Alternatives list cannot be empty.");
         }
 

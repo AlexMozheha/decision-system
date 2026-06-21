@@ -21,7 +21,7 @@ public class DecisionValidationService {
         Map<String, FactorClassification> factorTypeMap = request.factorParams().stream()
                 .collect(Collectors.toMap(FactorParams::name, FactorParams::type));
 
-        request.alternatives().stream()
+        request.alternativeRequests().stream()
                 .flatMap(alternative -> alternative.values().stream())
                 .forEach(eval -> {
 

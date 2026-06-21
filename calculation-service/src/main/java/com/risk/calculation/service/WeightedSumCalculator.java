@@ -1,8 +1,8 @@
 package com.risk.calculation.service;
 
-import com.risk.dto.EvaluationValue;
-import com.risk.dto.FactorParams;
-import com.risk.dto.Alternative;
+import com.risk.api.dto.AltCalculationDto;
+import com.risk.api.dto.EvaluationValue;
+import com.risk.api.dto.FactorParams;
 
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 public class WeightedSumCalculator {
 
     public Map<Integer, BigDecimal> calculateWeightedSum(
-            List<Alternative> alternatives,
+            List<AltCalculationDto> altCalculationDtos,
             List<EvaluationValue> normalizedEvaluations,
             Map<Integer, FactorParams> factorParamsMap) {
 
@@ -25,9 +25,9 @@ public class WeightedSumCalculator {
                         Collectors.toMap(EvaluationValue::rawValue, EvaluationValue::score)
                 ));
 
-        return alternatives.stream()
+        return altCalculationDtos.stream()
                 .collect(Collectors.toMap(
-                        Alternative::alternativeId,
+                        AltCalculationDto::alternativeId,
                         alternative -> {
                             BigDecimal weightedSum = BigDecimal.ZERO;
 

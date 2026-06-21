@@ -1,10 +1,10 @@
 package com.risk.calculation.service;
 
-import com.risk.calculation.dto.*;
-import com.risk.dto.Alternative;
-import com.risk.dto.CalculationRequest;
-import com.risk.dto.EvaluationValue;
-import com.risk.dto.FactorParams;
+import com.risk.api.dto.AltCalculationDto;
+import com.risk.calculation.dto.ZScoreEvaluation;
+import com.risk.api.dto.CalculationRequest;
+import com.risk.api.dto.EvaluationValue;
+import com.risk.api.dto.FactorParams;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -97,7 +97,7 @@ public class NormalizationService {
             Map<Integer, BigDecimal> stdDevValues,
             BigDecimal maxScore) {
 
-        List<ZScoreEvaluation> allEvaluationsWithZScore = request.alternatives().stream()
+        List<ZScoreEvaluation> allEvaluationsWithZScore = request.altCalculationDtos().stream()
                 .flatMap(alternative -> alternative.values().stream())
                 .map(eval -> {
                     int factorId = eval.factorId();
@@ -165,7 +165,7 @@ public class NormalizationService {
 
     public Map<Integer, BigDecimal> normRiskAlt(CalculationRequest request) {
 
-        Map<Integer, BigDecimal> allRisks = request.alternatives().stream().collect(Collectors.toMap(Alternative::alternativeId, Alternative::riskCoefficient));
+        Map<Integer, BigDecimal> allRisks = request.altCalculationDtos().stream().collect(Collectors.toMap(AltCalculationDto::alternativeId, AltCalculationDto::riskCoefficient));
 
         BigDecimal maxRisk = allRisks.values().stream().max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
         BigDecimal minRisk = allRisks.values().stream().min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);

@@ -4,7 +4,6 @@ package com.risk.decision.controller;
 import com.risk.decision.dto.DecisionRequest;
 import com.risk.decision.dto.DecisionResponse;
 import com.risk.decision.service.DecisionOrchestratorService;
-import com.risk.decision.service.DecisionResultProcessor;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +21,7 @@ public class DecisionController {
 @PostMapping("/make-decision")
     public ResponseEntity<DecisionResponse> makeDecision(@Valid @RequestBody DecisionRequest request) {
 
-        if (request.alternatives() == null || request.alternatives().isEmpty()) {
+        if (request.alternativeRequests() == null || request.alternativeRequests().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
         DecisionResponse response = orchestratorService.makeDecision(request);

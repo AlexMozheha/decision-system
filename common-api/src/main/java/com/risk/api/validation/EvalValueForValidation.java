@@ -1,4 +1,4 @@
-package com.risk.validation;
+package com.risk.api.validation;
 
 import java.math.BigDecimal;
 

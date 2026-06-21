@@ -6,13 +6,12 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+
+import lombok.*;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,21 +20,21 @@ public class Decision {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "dec_id", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "method_id", nullable = false)
-    private CalculationMethod calculationMethod;
+    @Column(name = "user_id", nullable = false)
+    private Integer userId;
 
-    @Column(nullable = false, length = 100)
+    @Enumerated(EnumType.ORDINAL)
+    @Column(name = "status_id", nullable = false)
+    private DecisionStatus status = DecisionStatus.DRAFT;
+
+    @Column(name = "dec_name", nullable = false, length = 100)
     private String name;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime createdAt = ZonedDateTime.now();
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 50)
-    private DecisionStatus status = DecisionStatus.DRAFT;
 
     @Column(name = "max_score", nullable = false)
     private BigDecimal maxScore;
@@ -45,5 +44,15 @@ public class Decision {
 
     @OneToMany(mappedBy = "decision", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Factor> factors;
+
+    @OneToMany(mappedBy = "decision", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CalculationResult> calculationResults;
+
+    @OneToMany(mappedBy = "decision", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Report> calculationReports;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "method_id", nullable = false)
+    private CalculationMethod calculationMethod;
 
 }

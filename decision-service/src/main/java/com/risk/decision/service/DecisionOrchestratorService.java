@@ -1,15 +1,19 @@
 package com.risk.decision.service;
 
 
-import com.risk.client.CalculationServiceClient;
-import com.risk.dto.CalculationRequest;
-import com.risk.dto.CalculationResponse;
+import com.risk.decision.client.CalculationServiceClient;
+import com.risk.decision.dto.AlternativeRequest;
+import com.risk.decision.model.CalculationMethod;
+import com.risk.decision.model.Decision;
+import com.risk.decision.model.Evaluation;
+import com.risk.decision.model.Factor;
+import com.risk.decision.repository.*;
+import com.risk.api.dto.CalculationRequest;
+import com.risk.api.dto.CalculationResponse;
 import com.risk.decision.dto.DecisionCalculationData;
 import com.risk.decision.dto.DecisionRequest;
 import com.risk.decision.dto.DecisionResponse;
 import com.risk.decision.dto.EvaluationValue;
-import com.risk.decision.model.*;
-import com.risk.decision.repository.*;
 import com.risk.enums.CalculationMethodType;
 import com.risk.enums.DecisionStatus;
 import jakarta.transaction.Transactional;
@@ -70,9 +74,9 @@ public class DecisionOrchestratorService {
                         f -> f
                 ));
 
-        List<Alternative> alternativeEntities = newDecision.getAlternatives();
+        List<com.risk.decision.model.Alternative> alternativeEntities = newDecision.getAlternatives();
 
-        Map<String, Alternative> alternativeByName = alternativeEntities
+        Map<String, com.risk.decision.model.Alternative> alternativeByName = alternativeEntities
                 .stream()
                 .collect(Collectors.toMap(
                         a -> a.getName().toLowerCase(),
@@ -80,9 +84,9 @@ public class DecisionOrchestratorService {
                 ));
 
 
-        for (com.risk.decision.dto.Alternative altDto : request.alternatives()) {
+        for (AlternativeRequest altDto : request.alternativeRequests()) {
 
-            Alternative altEntity = alternativeByName.get(altDto.name().toLowerCase());
+            com.risk.decision.model.Alternative altEntity = alternativeByName.get(altDto.name().toLowerCase());
 
             if (altEntity == null)
                 throw new IllegalStateException(
@@ -141,7 +145,7 @@ public class DecisionOrchestratorService {
 
         DecisionResponse finalResponse = resultProcessor.makeFinalDecision(calcData);
 
-        savedDecision.setStatus(DecisionStatus.FINALIZED);
+        savedDecision.setStatus(DecisionStatus.CALCULATED);
         decisionRepository.save(savedDecision);
 
         return finalResponse;

@@ -381,13 +381,12 @@
       });
     }
     document.addEventListener('click', e => {
-      if (!e.target.closest('.navbar-actions')) {
-        document.getElementById('drop-reg').style.display = 'none';
-        document.getElementById('drop-login').style.display = 'none';
-      }
+    if (!e.target.closest('.dropdown-wrapper')) {
+      document.getElementById('drop-reg').style.display = 'none';
+      document.getElementById('drop-login').style.display = 'none';
+    }
     });
 
-    document.addEventListener('langChanged', init, { once: true });
   </script>
 </body>
 </html>

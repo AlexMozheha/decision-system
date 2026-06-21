@@ -30,5 +30,5 @@ public record DecisionRequest (
         @NotNull(message = "Alternatives list cannot be null")
         @Size(min = 1, message = "At least one alternative is required")
         @Valid
-        List<Alternative> alternatives
+        List<AlternativeRequest> alternativeRequests
 ) {}

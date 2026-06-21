@@ -6,7 +6,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.List;
 
-public record Alternative(
+public record AlternativeRequest(
 
         @NotBlank(message = "Alternative name cannot be empty")
         String name,
