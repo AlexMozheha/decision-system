@@ -44,3 +44,11 @@ app:
   services:
     user-service-url: "http://user-service"
     calculation-service-url: "http://calculation-service"
+  security:
+    cors:
+      allowed-origins:
+        - http://localhost:5500
+
+jwt:
+  secret: ${JWT_SECRET:9a7261536444743777217a25432a462d4a614e645267556b5870327335763879}
+  expiration: 28800000

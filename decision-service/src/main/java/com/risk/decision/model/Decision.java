@@ -26,9 +26,9 @@ public class Decision {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
-    @Enumerated(EnumType.ORDINAL)
-    @Column(name = "status_id", nullable = false)
-    private DecisionStatus status = DecisionStatus.DRAFT;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id", nullable = false)
+    private Status status;
 
     @Column(name = "dec_name", nullable = false, length = 100)
     private String name;

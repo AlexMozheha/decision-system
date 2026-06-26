@@ -35,7 +35,7 @@ public class AppUser implements UserDetails {
     private String password;
 
     @Column(name = "full_name", nullable = false, length = 150)
-    private String userName;
+    private String fullName;
 
     @Column(name = "email", nullable = false)
     private String email;
@@ -62,7 +62,7 @@ public class AppUser implements UserDetails {
     @Override
     @NonNull
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.getName()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.getName().name()));
     }
 
 }

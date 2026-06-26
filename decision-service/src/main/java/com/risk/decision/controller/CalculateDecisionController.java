@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/decisions")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://127.0.0.1:5500")
-public class DecisionController {
+public class CalculateDecisionController {
 
     private final DecisionOrchestratorService orchestratorService;
 

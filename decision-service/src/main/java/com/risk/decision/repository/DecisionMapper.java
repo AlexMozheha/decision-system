@@ -15,7 +15,7 @@ public interface DecisionMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "status", constant = "DRAFT")
+    @Mapping(target = "status", expression = "java(DecisionStatus.DRAFT)")
     @Mapping(target = "name", source = "request.decisionName")
     @Mapping(target = "calculationMethod", source = "method")
     @Mapping(target = "factors", source = "request.factorParams")
@@ -33,8 +33,6 @@ public interface DecisionMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "decision", ignore = true)
     @Mapping(target = "evaluations", ignore = true)
-    @Mapping(target = "factorWeight", source = "factorWeight")
-    @Mapping(target = "isGrowing", source = "isGrowing")
     Factor toFactor(FactorParams factorParams);
 
     // EvaluationValue DTO (Source) -> Evaluation Entity (Target)

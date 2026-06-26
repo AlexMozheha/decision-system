@@ -6,10 +6,10 @@ import com.risk.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -27,5 +27,15 @@ public class UserController {
     @GetMapping("/internal/{login}")
     public ResponseEntity<UserResponse> getUserByLoginInternal(@PathVariable String login){
         return ResponseEntity.ok(userService.getUserResponseByLogin(login));
+    }
+
+    @GetMapping("/search/users")
+    public ResponseEntity<List<UserResponse>> searchUsers(@RequestParam String name){
+        return ResponseEntity.ok(userService.searchUsersByName(name));
+    }
+
+    @PostMapping("/internal/batch-names")
+    public ResponseEntity<Map<Integer, String>> getUsersNamesByIds(@RequestBody List<Integer> ids) {
+        return ResponseEntity.ok(userService.getNamesByIds(ids));
     }
 }

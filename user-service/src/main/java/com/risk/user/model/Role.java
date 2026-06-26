@@ -1,5 +1,6 @@
 package com.risk.user.model;
 
+import com.risk.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,8 +18,9 @@ public class Role {
     @Column(name ="role_id", nullable = false)
     private Integer id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role_name", nullable = false, unique = true, length = 30)
-    private String name;
+    private UserRole name;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
