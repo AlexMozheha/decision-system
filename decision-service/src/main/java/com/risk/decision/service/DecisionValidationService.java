@@ -16,8 +16,6 @@ public class DecisionValidationService {
 
     public void validateFactorDataConsistency(DecisionRequest request) {
 
-        // Створення мапи для швидкого доступу: Factor NAME -> FactorClassification
-        // name - унікальний ключ.
         Map<String, FactorClassification> factorTypeMap = request.factorParams().stream()
                 .collect(Collectors.toMap(FactorParams::name, FactorParams::type));
 
@@ -35,19 +33,13 @@ public class DecisionValidationService {
                     boolean rawValueProvided = eval.rawValue() != null;
                     boolean scoreProvided = eval.score() != null;
 
-                    // припускаємо, що XOR вже пройшов, і перевіряємо, чи відповідає ТИП наданому полю.
-
-                    // Правило: Об'єктивний фактор (вимагає rawValue)
                     if (type == FactorClassification.OBJECTIVE && !rawValueProvided) {
-                        // Якщо тип OBJECTIVE, але надано score (або обидва null, але це порушить XOR)
                         throw new IllegalArgumentException(
                                 "Фактор '" + factorName + "' є Об'єктивним, але відсутнє 'rawValue' (або надано 'score')."
                         );
                     }
 
-                    // Правило: Суб'єктивний фактор (вимагає score)
                     if (type == FactorClassification.SUBJECTIVE && !scoreProvided) {
-                        // Якщо тип SUBJECTIVE, але надано rawValue (або обидва null)
                         throw new IllegalArgumentException(
                                 "Фактор '" + factorName + "' є Суб'єктивним, але відсутній 'score' (або надано 'rawValue')."
                         );
@@ -58,7 +50,7 @@ public class DecisionValidationService {
 
     public CalculationMethod validateMethodByName(CalculationMethodRepository calculationMethodRepository,
                                                   DecisionRequest request){
-        return calculationMethodRepository.findByName(request.method().toString())
+        return calculationMethodRepository.findByName(request.method())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Calculation method '" + request.method() + "' is not supported."
                 ));

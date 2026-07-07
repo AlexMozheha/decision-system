@@ -12,13 +12,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/decisions")
+@RequestMapping("/api/calculations")
 @RequiredArgsConstructor
 public class CalculationController {
 
     private final CalculationCoordinator calculationCoordinator;
 
-    @PostMapping("/calculate")
+    @PostMapping
     public CalculationResponse calculateDecisionScore(@Valid @RequestBody CalculationRequest request) {
 
         if (request.altCalculationDtos() == null || request.altCalculationDtos().isEmpty()) {

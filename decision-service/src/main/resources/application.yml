@@ -5,8 +5,9 @@ spring:
   application:
     name: decision-service
 
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/Decision_DB
+    url: jdbc:postgresql://localhost:5432/Decision_IS
     username: postgres
     password: 54321
     driver-class-name: org.postgresql.Driver
@@ -17,6 +18,11 @@ spring:
     show-sql: true
     properties:
       hibernate.format_sql: true
+      hibernate:
+        query:
+          plan_cache_max_size: 2048
+        type:
+          preferred_uuid_jdbc_type: CHAR
 
   cloud:
     consul:
@@ -26,8 +32,10 @@ spring:
         service-name: decision-service
         register: true
         prefer-ip-address: true
+        ip-address: host.docker.internal
         health-check-path: /actuator/health
         health-check-interval: 10s
+        instance-id: ${spring.application.name}:${server.port}:${random.value}
 
 management:
   endpoints:
@@ -46,9 +54,9 @@ app:
     calculation-service-url: "http://calculation-service"
   security:
     cors:
-      allowed-origins:
-        - http://localhost:5500
+      allowed-origins: "http://localhost:5500,http://127.0.0.1:5500"
 
 jwt:
-  secret: ${JWT_SECRET:9a7261536444743777217a25432a462d4a614e645267556b5870327335763879}
+  secret: ${JWT_SECRET:YTIzNDU2Nzg5MGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6TUI0NTY3ODkwYmNkZWZnaGlqa2xtbm9wY3JzdHV2dw==}
   expiration: 28800000
+

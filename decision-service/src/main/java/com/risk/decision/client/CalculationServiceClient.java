@@ -16,12 +16,12 @@ public class CalculationServiceClient {
     private final RestClient client;
 
     public CalculationServiceClient(RestClient.Builder builder, @Value("${app.services.calculation-service-url}") String baseUrl) {
-        this.client = builder.baseUrl(baseUrl).build();
+        this.client = builder.clone().baseUrl(baseUrl).build();
     }
     public CalculationResponse calculate(CalculationRequest request) {
         try {
             return client.post()
-                    .uri("/api/decisions/calculate")
+                    .uri("/api/calculations")
                     .body(request)
                     .retrieve()
                     .body(CalculationResponse.class);

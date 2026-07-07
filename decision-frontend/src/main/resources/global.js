@@ -30,12 +30,15 @@ async function initLang() {
   updateLangBtn(saved);
 }
 
+window.isDssLangReady = false;
+
 async function loadLang(lang) {
   try {
     const res = await fetch(`language.${lang}.json`);
     _translations = await res.json();
     localStorage.setItem('dss-lang', lang);
     applyTranslations();
+    window.isDssLangReady = true;
   document.dispatchEvent(new Event("langChanged"));
   } catch (e) {
     console.error('language load error:', e);
@@ -91,6 +94,7 @@ function applyTranslations() {
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   await initLang();
+  getUserFromToken();
 });
 
 window.addEventListener('storage', async (event) => {
@@ -109,12 +113,65 @@ window.addEventListener('storage', async (event) => {
 });
 
 window.addEventListener('pageshow', (event) => {
-  // event.persisted означає, що сторінка дістається з кешу пам'яті
   if (event.persisted) {
     initTheme();
-    // Для мови: беремо актуальну з пам'яті
     const savedLang = localStorage.getItem('dss-lang') || 'uk';
     loadLang(savedLang);
     updateLangBtn(savedLang);
   }
 });
+
+// ─── API CLIENTS ──────────────────────────────────────────────────
+const authInterceptor = config => {
+    const token = localStorage.getItem('dss-token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+};
+
+const userApi = axios.create({ baseURL: 'http://localhost:8083' });
+const decisionApi = axios.create({ baseURL: 'http://localhost:8081' });
+
+const responseErrorInterceptor = error => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        
+        const url = error.config.url;
+        if (!url.includes('/api/auth/register') && !url.includes('/api/auth/login')) {
+            console.warn('Отримано 401/403 від сервера. Токен недійсний. Очищення...');
+            localStorage.removeItem('dss-token');  
+        }
+    }
+    return Promise.reject(error);
+};
+
+[userApi, decisionApi].forEach(instance => {
+    instance.interceptors.request.use(authInterceptor);
+});
+
+function getUserFromToken() {
+    const token = localStorage.getItem('dss-token');
+    if (!token) return null;
+    
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        const claims = JSON.parse(jsonPayload);
+
+        if (claims.exp && claims.exp * 1000 < Date.now()) {
+            console.warn('Токен протух, видаляємо з пам\'яті...');
+            localStorage.removeItem('dss-token');
+            return null;
+        }
+
+        return {
+            login: claims.sub || claims.login || 'Admin'
+        };
+    } catch (e) {
+        console.error('Не вдалося розпарсити JWT токен:', e);
+        localStorage.removeItem('dss-token');
+        return null;
+    }
+}

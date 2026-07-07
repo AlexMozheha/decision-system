@@ -6,5 +6,6 @@ import java.util.List;
 public record DecisionResponse(
         String decisionName,
         List<AlternativeResponse> alternatives,
-        ZonedDateTime calculatedAt
+        ZonedDateTime calculatedAt,
+        List<String> recommendation
 ) {}

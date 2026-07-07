@@ -14,6 +14,7 @@
   </script>
 
   <link rel="stylesheet" href="theme.css" />
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="global.js"></script>
 
   <style>
@@ -122,10 +123,9 @@
       <div class="filter-tabs" id="filter-tabs">
         <button class="filter-tab" data-status="ALL" onclick="setFilter('ALL')" data-language="admin_dashboard.filter_all">Всі</button>
         <button class="filter-tab active" data-status="READY_FOR_CALCULATION" onclick="setFilter('READY_FOR_CALCULATION')">Ready</button>
-        <button class="filter-tab" data-status="CALCULATING"        onclick="setFilter('CALCULATING')">Calculating</button>
-        <button class="filter-tab" data-status="CALCULATED"         onclick="setFilter('CALCULATED')">Calculated</button>
+        <button class="filter-tab" data-status="CALCULATING" onclick="setFilter('CALCULATING')">Calculating</button>
+        <button class="filter-tab" data-status="CALCULATED" onclick="setFilter('CALCULATED')">Calculated</button>
         <button class="filter-tab" data-status="CALCULATION_FAILED" onclick="setFilter('CALCULATION_FAILED')">Failed</button>
-        <button class="filter-tab" data-status="DRAFT"              onclick="setFilter('DRAFT')">Draft</button>
       </div>
 
       <div class="search-box">
@@ -150,151 +150,237 @@
   </main>
 
   <script>
-    const STATUS_CONFIG = {
-      DRAFT:                 { icon: 'ti-pencil',       css: 's-draft' },
-      READY_FOR_CALCULATION: { icon: 'ti-send',         css: 's-ready' },
-      CALCULATING:           { icon: 'ti-loader',       css: 's-calculating' },
-      CALCULATED:            { icon: 'ti-circle-check', css: 's-calculated' },
-      CALCULATION_FAILED:    { icon: 'ti-alert-circle', css: 's-failed' }
-    };
+    // ─── СТАН ────────────────────────────────────────────────────────
+  let currentFilter = 'READY_FOR_CALCULATION';
+  let currentSearch = '';
+  let searchTimer = null;
+  let isLoading = false;
 
-    // TODO: замінити на GET /api/decisions?all=true (з JWT токеном адміна)
-    const mockDecisions = [
-      { id: 123, name: 'Оцінювання постачальників 2025',     investor: 'user_ivanov',    status: 'READY_FOR_CALCULATION', created_at: '2025-04-14', calculated_at: null },
-      { id: 122, name: 'Аналіз логістичних альтернатив',     investor: 'user_petrenko',  status: 'READY_FOR_CALCULATION', created_at: '2025-04-13', calculated_at: null },
-      { id: 121, name: 'Порівняння підрядників будівництва', investor: 'user_kovalenko', status: 'READY_FOR_CALCULATION', created_at: '2025-04-12', calculated_at: null },
-      { id: 120, name: 'Інвестиційний портфель Q2',           investor: 'user_ivanov',    status: 'CALCULATING',           created_at: '2025-04-10', calculated_at: null },
-      { id: 119, name: 'Вибір технологічної платформи',       investor: 'user_melnyk',    status: 'CALCULATED',            created_at: '2025-04-05', calculated_at: '2025-04-07' },
-      { id: 118, name: 'Оцінка ринків збуту 2025',            investor: 'user_petrenko',  status: 'CALCULATION_FAILED',    created_at: '2025-04-03', calculated_at: null },
-      { id: 117, name: 'Аналіз інвестиційних ризиків',        investor: 'user_kovalenko', status: 'DRAFT',                 created_at: '2025-03-28', calculated_at: null },
-      { id: 116, name: 'Порівняння фінансових інструментів',  investor: 'user_ivanov',    status: 'CALCULATED',            created_at: '2025-03-20', calculated_at: '2025-03-22' },
-    ];
 
-    let currentFilter = 'READY_FOR_CALCULATION';
+  function initializeDashboard() {
+    if (window._dashboardInit) return;
+    window._dashboardInit = true;
 
-    function formatDate(dateStr) {
-      if (!dateStr) return null;
-      return new Date(dateStr).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
-
-    function highlightText(text, query) {
-      if (!query) return text;
-      const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      return text.replace(re, '<mark class="highlight">$1</mark>');
-    }
-
-    function setFilter(status) {
-      currentFilter = status;
-      document.querySelectorAll('.filter-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.status === status);
-      });
-      const titles = t('admin_dashboard.titles');
-      const titleKey = `admin_dashboard.titles.${status}`;
-      document.getElementById('section-title').textContent = t(titleKey) || status;
-      applyFilters();
-    }
-
-    function refreshFilterLabels() {
-      document.querySelectorAll('.filter-tab[data-status]').forEach(tab => {
-        const status = tab.dataset.status;
-        if (status === 'ALL') return;
-        const label = t(`statuses.${status}`);
-        if (label && label !== `statuses.${status}`) tab.textContent = label;
-      });
-      const titleKey = `admin_dashboard.titles.${currentFilter}`;
-      const titleEl = document.getElementById('section-title');
-      const translated = t(titleKey);
-      if (translated && translated !== titleKey) titleEl.textContent = translated;
-    }
-
-    function applyFilters() {
-      const query = document.getElementById('search-input').value.trim().toLowerCase();
-
-      const filtered = mockDecisions.filter(d => {
-        const matchStatus = currentFilter === 'ALL' || d.status === currentFilter;
-        const matchSearch = !query ||
-          d.name.toLowerCase().includes(query) ||
-          d.investor.toLowerCase().includes(query);
-        return matchStatus && matchSearch;
-      });
-
-      renderDecisions(filtered, query);
-
-      const countEl = document.getElementById('results-count');
-      const label = t('admin_dashboard.results_count') || 'Показано';
-      countEl.textContent = `${label}: ${filtered.length} / ${mockDecisions.length}`;
-    }
-
-    function getCardHref(decision) {
-      if (['READY_FOR_CALCULATION', 'CALCULATING'].includes(decision.status)) {
-        return `admin-calculate.html?id=${decision.id}`;
-      }
-      if (decision.status === 'CALCULATED') {
-        return `decision-results.html?id=${decision.id}&role=ADMIN`;
-      }
-      return null;
-    }
-
-    function renderDecisions(decisions, query = '') {
-      const container = document.getElementById('decisions-list');
-
-      if (!decisions.length) {
-        container.innerHTML = `<div class="empty-state">${t('admin_dashboard.empty')}</div>`;
+    const user = getUserFromToken();
+    if (user) {
+        document.getElementById('username').textContent = user.login;
+    } else {
+        window.location.href = 'main-page.html';
         return;
+    }
+
+    refreshFilterLabels();
+    loadScenarios();
+  }
+
+  function handleLanguageChange() {
+    if (window._dashboardInit) {
+        refreshFilterLabels();
+        loadScenarios();
+    } else {
+        initializeDashboard();
+    }
+  }
+
+  document.addEventListener('langChanged', handleLanguageChange);
+
+  if (window.isDssLangReady) {
+    initializeDashboard();
+  }
+
+
+  const STATUS_CONFIG = {
+    DRAFT:                 { icon: 'ti-pencil',       css: 's-draft' },
+    READY_FOR_CALCULATION: { icon: 'ti-send',         css: 's-ready' },
+    CALCULATING:           { icon: 'ti-loader',       css: 's-calculating' },
+    CALCULATED:            { icon: 'ti-circle-check', css: 's-calculated' },
+    CALCULATION_FAILED:    { icon: 'ti-alert-circle', css: 's-failed' }
+  };
+
+  // ─── ЗАВАНТАЖЕННЯ ────────────────────────────────────────────────
+  async function loadScenarios() {
+    if (isLoading) return;
+    isLoading = true;
+
+    const container = document.getElementById('decisions-list');
+    container.innerHTML = `<div class="empty-state">
+        <i class="ti ti-loader" style="font-size:20px"></i>
+    </div>`;
+
+    try {
+        const params = {
+            page: 0,
+            size: 50,
+            sort: 'createdAt,desc'
+        };
+
+        if (currentSearch) params.search = currentSearch;
+
+        if (currentFilter !== 'ALL') params.status = currentFilter;
+
+        const response = await decisionApi.get('/api/admin/scenarios', { params });
+        const data = response.data;
+
+        renderDecisions(data.content, currentSearch);
+        updateCount(data.totalElements, data.content.length);
+
+    } catch (err) {
+        console.error('Помилка завантаження:', err);
+        container.innerHTML = `<div class="empty-state">
+            ${t('admin_dashboard.load_error') || 'Помилка завантаження. Спробуйте пізніше.'}
+        </div>`;
+    } finally {
+        isLoading = false;
+    }
+  }
+
+  // ─── ФІЛЬТР ──────────────────────────────────────────────────────
+  function setFilter(status) {
+    currentFilter = status;
+
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.status === status);
+    });
+
+    const titleKey = `admin_dashboard.titles.${status}`;
+    document.getElementById('section-title').textContent = t(titleKey) || status;
+
+    loadScenarios();
+  }
+
+  // ─── ПОШУК З DEBOUNCE ────────────────────────────────────────────
+  function applyFilters() {
+    currentSearch = document.getElementById('search-input').value.trim();
+
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        loadScenarios();
+    }, 400);
+  }
+
+  // ─── РЕНДЕР ──────────────────────────────────────────────────────
+  function formatDate(dateStr) {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString('uk-UA', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  }
+
+  function highlightText(text, query) {
+    if (!query || !text) return text || '';
+    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(re, '<mark class="highlight">$1</mark>');
+  }
+
+  function getCardHref(decision) {
+    if (decision.statusName === 'READY_FOR_CALCULATION' || decision.statusName === 'CALCULATING') {
+        return `new-calculate-decision.html?decisionId=${decision.id}`;
+    }
+    if (decision.statusName === 'CALCULATED') {
+        return `decision-result.html?id=${decision.id}&role=ADMIN`;
+    }
+    return null;
+  }
+
+  function renderDecisions(decisions, query = '') {
+    const container = document.getElementById('decisions-list');
+
+    console.log("Отримані сценарії з бекенду:", decisions);
+
+    if (!decisions || decisions.length === 0) {
+        container.innerHTML = `<div class="empty-state">
+            ${t('admin_dashboard.empty') || 'Сценаріїв не знайдено'}
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = decisions.map(d => {
+
+      let statusStr = d.statusName; 
+
+
+      if (statusStr === 'DRAFT') {
+        statusStr = 'READY_FOR_CALCULATION';
       }
+  
+      const s = STATUS_CONFIG[statusStr] || { css: 's-failed', icon: 'ti-help' };
 
-      container.innerHTML = decisions.map(d => {
-        const s = STATUS_CONFIG[d.status];
-        if (!s) return '';
+    
+      const href = getCardHref({ ...d, statusName: statusStr });
 
-        const href         = getCardHref(d);
-        const createdStr   = formatDate(d.created_at);
-        const calcStr      = formatDate(d.calculated_at);
-        const nameHtml     = highlightText(d.name, query);
-        const investorHtml = highlightText(d.investor, query);
-        const statusLabel  = t(`statuses.${d.status}`) || d.status;
+      const createdStr = formatDate(d.createdAt);
+      const calcStr = formatDate(d.calculatedAt);
+      const nameHtml = highlightText(d.name, query);
+      const investorHtml = highlightText(d.investorName, query);
+    
+    
+      const statusLabel = t(`statuses.${statusStr}`) || statusStr;
 
         const tag      = href ? 'a' : 'div';
         const hrefAttr = href ? `href="${href}"` : '';
 
         return `
-          <${tag} ${hrefAttr} class="decision-card" style="text-decoration:none">
+        <${tag} ${hrefAttr} class="decision-card" style="text-decoration:none">
             <div class="decision-left">
-              <span class="decision-num">№ ${d.id}</span>
-              <div class="decision-info">
-                <span class="decision-name">${nameHtml}</span>
-                <div class="decision-meta">
-                  <span><i class="ti ti-user" style="font-size:11px"></i> ${investorHtml}</span>
-                  <span><i class="ti ti-calendar-plus" style="font-size:11px"></i> ${t('admin_dashboard.date_created')}: ${createdStr}</span>
-                  ${calcStr ? `<span><i class="ti ti-calculator" style="font-size:11px"></i> ${t('admin_dashboard.date_calc')}: ${calcStr}</span>` : ''}
+                <span class="decision-num">№ ${d.id}</span>
+                <div class="decision-info">
+                    <span class="decision-name">${nameHtml}</span>
+                    <div class="decision-meta">
+                        <span>
+                            <i class="ti ti-user" style="font-size:11px"></i>
+                            ${investorHtml}
+                        </span>
+                        <span>
+                            <i class="ti ti-calendar-plus" style="font-size:11px"></i>
+                            ${t('admin_dashboard.date_created')}: ${createdStr}
+                        </span>
+                        ${calcStr ? `
+                        <span>
+                            <i class="ti ti-calculator" style="font-size:11px"></i>
+                            ${t('admin_dashboard.date_calc')}: ${calcStr}
+                        </span>` : ''}
+                    </div>
                 </div>
-              </div>
             </div>
             <div class="decision-right">
-              <span class="status-badge ${s.css}">
-                <i class="ti ${s.icon}" style="font-size:13px" aria-hidden="true"></i>
-                ${statusLabel}
-              </span>
-              ${href
-                ? '<i class="ti ti-chevron-right chevron" aria-hidden="true"></i>'
-                : '<i class="ti ti-minus" style="font-size:16px;color:#aaa"></i>'}
+                <span class="status-badge ${s.css}">
+                    <i class="ti ${s.icon}" style="font-size:13px"></i>
+                    ${statusLabel}
+                </span>
+                ${href
+                    ? '<i class="ti ti-chevron-right chevron"></i>'
+                    : '<i class="ti ti-minus" style="font-size:16px;color:#aaa"></i>'}
             </div>
-          </${tag}>`;
-      }).join('');
-    }
+        </${tag}>`;
+    }).join('');
+  }
 
-    function logout() {
-      // TODO: localStorage.removeItem('token');
-      window.location.href = 'index.html';
-    }
+  function updateCount(total, shown) {
+    const countEl = document.getElementById('results-count');
+    const label   = t('admin_dashboard.results_count') || 'Показано';
+    countEl.textContent = `${label}: ${shown} / ${total}`;
+  }
 
-    // При зміні мови — перерендер і оновлення лейблів
-    document.addEventListener('langChanged', () => {
-      refreshFilterLabels();
-      applyFilters();
+  // ─── ОНОВЛЕННЯ ЛЕЙБЛІВ ПРИ ЗМІНІ МОВИ ───────────────────────────
+  function refreshFilterLabels() {
+    document.querySelectorAll('.filter-tab[data-status]').forEach(tab => {
+        const status = tab.dataset.status;
+        if (status === 'ALL') return;
+        const label = t(`statuses.${status}`);
+        if (label && label !== `statuses.${status}`) tab.textContent = label;
     });
+    const titleKey = `admin_dashboard.titles.${currentFilter}`;
+    const translated = t(titleKey);
+    if (translated && translated !== titleKey) {
+        document.getElementById('section-title').textContent = translated;
+    }
+  }
 
-    // Початковий рендер після завантаження перекладів
-    document.addEventListener('langChanged', applyFilters, { once: true });
+  // ─── ЛОГАУТ ──────────────────────────────────────────────────────
+  function logout() {
+    localStorage.removeItem('dss-token');
+    window.location.href = 'main-page.html';
+  }
+
   </script>
 </body>

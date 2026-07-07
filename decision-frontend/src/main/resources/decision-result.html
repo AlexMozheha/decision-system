@@ -16,6 +16,8 @@
   </script>
 
   <link rel="stylesheet" href="theme.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="global.js"></script>
 
   <style>
@@ -198,236 +200,379 @@
   </main>
 
   <script>
-    const params     = new URLSearchParams(window.location.search);
-    const ROLE       = params.get('role') || 'ADMIN';
-    const decisionId = params.get('id');
-    const THRESHOLD  = 0.70;
+  const params = new URLSearchParams(window.location.search);
+  const ROLE = params.get('role') || 'ADMIN';
+  const decisionId = params.get('id');
 
-    // TODO: замінити на GET /api/decisions/{id}/results
-    const mockResults = [
-      { rank: 1, name: 'Supplier B', score: 0.85, factorScores: { Price: 82, Quality: 75, DeliverySpeed: 90 } },
-      { rank: 2, name: 'Supplier A', score: 0.72, factorScores: { Price: 60, Quality: 88, DeliverySpeed: 55 } },
-      { rank: 3, name: 'Supplier C', score: 0.60, factorScores: { Price: 70, Quality: 65, DeliverySpeed: 48 } },
-    ];
-    const mockFactors      = ['Price', 'Quality', 'DeliverySpeed'];
-    const mockCalculatedAt = '2025-04-12T14:35:00';
+ function initializeResultsPage() {
+    if (window._resultsPageInit) return;
+    window._resultsPageInit = true;
 
-    // Кольори графіків — адаптуємо до теми
-    function getChartColors() {
-      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-      const alpha = dark ? 0.5 : 0.35;
-      return {
+    const user = getUserFromToken();
+    if (user) {
+        const usernameEl = document.getElementById('username');
+        if (usernameEl) usernameEl.textContent = user.login;
+    } else {
+        window.location.href = 'main-page.html';
+        return;
+    }
+
+    loadResults();
+  }
+
+  if (window.isDssLangReady) {
+    initializeResultsPage();
+  } else {
+    document.addEventListener('langChanged', initializeResultsPage);
+  }
+  
+
+
+  // ─── СТАН ────────────────────────────────────────────────────────
+  let _results = null;
+  let _factors = null;
+
+  // ─── КОЛЬОРИ ГРАФІКІВ ────────────────────────────────────────────
+  function getChartColors() {
+    const dark  = document.documentElement.getAttribute('data-theme') === 'dark';
+    const alpha = dark ? 0.5 : 0.35;
+    return {
         bg: [
-          `rgba(58,106,154,${alpha})`,
-          `rgba(90,154,90,${alpha})`,
-          `rgba(154,90,90,${alpha})`,
-          `rgba(154,130,58,${alpha})`,
-          `rgba(100,80,154,${alpha})`,
+            `rgba(58,106,154,${alpha})`,
+            `rgba(90,154,90,${alpha})`,
+            `rgba(154,90,90,${alpha})`,
+            `rgba(154,130,58,${alpha})`,
+            `rgba(100,80,154,${alpha})`,
         ],
         border: [
-          'rgba(58,106,154,1)',
-          'rgba(90,154,90,1)',
-          'rgba(154,90,90,1)',
-          'rgba(154,130,58,1)',
-          'rgba(100,80,154,1)',
+            'rgba(58,106,154,1)',
+            'rgba(90,154,90,1)',
+            'rgba(154,90,90,1)',
+            'rgba(154,130,58,1)',
+            'rgba(100,80,154,1)',
         ],
-        grid:  dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-        ticks: dark ? 'rgba(255,255,255,0.4)'  : 'rgba(0,0,0,0.4)',
-        labels:dark ? '#b0bac4' : '#333',
-        axis:  dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
-      };
-    }
+        grid:   dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+        ticks:  dark ? 'rgba(255,255,255,0.4)'  : 'rgba(0,0,0,0.4)',
+        labels: dark ? '#b0bac4' : '#333',
+        axis:   dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+    };
+  }
 
-    // Зберігаємо інстанси для перестворення при зміні теми
-    let chartInstances = {};
+  // ─── ГРАФІКИ ─────────────────────────────────────────────────────
+  let chartInstances = {};
 
-    function destroyCharts() {
-      Object.values(chartInstances).forEach(c => c.destroy());
-      chartInstances = {};
-    }
+  function destroyCharts() {
+    Object.values(chartInstances).forEach(c => c.destroy());
+    chartInstances = {};
+  }
 
-    // ── Navbar ──
-    function setupNavbar() {
-    const el = document.getElementById('user-box');
-    if (!el) return;
-  
-    const roleKey = ROLE === 'ADMIN' ? 'nav.role_admin' : 'nav.role_pm';
-    const nameText = ROLE === 'ADMIN' ? 'Admin123' : 'User123';
-  
-    el.innerHTML = `${t(roleKey)}: <strong>${nameText}</strong>`;
-    }
-
-    // ── Дата розрахунку ──
-    function renderCalculatedAt(isoDate) {
-      if (!isoDate) return;
-      const d         = new Date(isoDate);
-      const formatted = d.toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric' })
-                      + ' ' + d.toLocaleTimeString('uk-UA', { hour:'2-digit', minute:'2-digit' });
-      const label = document.getElementById('calculated-at-label');
-      document.getElementById('calculated-at-text').textContent =
-        `${t('results.calculated_at') || 'Розраховано'}: ${formatted}`;
-      label.style.display = 'flex';
-    }
-
-    // ── PDF кнопка ──
-    function setupPDFButton() {
-      document.getElementById('pdf-btn-label').textContent =
-        ROLE === 'ADMIN' ? t('results.btn_generate') : t('results.btn_download');
-    }
-
-    function handlePDF() {
-      // TODO: fetch до беку
-      console.log(`${ROLE}: PDF для рішення №${decisionId}`);
-    }
-
-    // ── Результати ──
-    function renderResults(results) {
-      const list      = document.getElementById('results-list');
-      const recoBlock = document.getElementById('recommended-block');
-      const recoText  = document.getElementById('reco-text');
-
-      list.innerHTML = results.map(r => `
-        <div class="alt-row ${r.score >= THRESHOLD ? 'above' : 'below'}">
-          <span><span class="alt-rank">${r.rank}.</span> ${r.name}</span>
-          <span class="alt-score">${r.score.toFixed(2)}</span>
-        </div>`).join('');
-
-      recoBlock.style.display = 'flex';
-      document.getElementById('recommended-name').textContent = results[0].name;
-
-      recoText.innerHTML = results.map(r => {
-      let template = '';
+  function calculateScaleLimits(values, marginPercent = 0.1) {
+    if (!values || values.length === 0) return { min: 0, max: 100 };
     
-      if (r.rank === 1) {
-        template = t('results.reco_best');
-      } else if (r.score >= THRESHOLD) {
-        template = t('results.reco_good');
-      } else {
-        template = t('results.reco_bad');
-      }
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const delta = maxVal - minVal;
 
-      return template
-        .replace('{name}', r.name)
-        .replace('{score}', r.score.toFixed(2));
-      }).join('<br/>');
+    // Якщо всі значення однакові, робимо штучний відступ навколо цього значення
+    if (delta === 0) {
+        return {
+            min: Math.max(0, minVal - (minVal * marginPercent || 1)),
+            max: maxVal + (maxVal * marginPercent || 1)
+        };
     }
 
-    // ── Графіки ──
-    function buildCharts(results, factors) {
-      destroyCharts();
-      const c = getChartColors();
+    const padding = delta * marginPercent;
+    
+    return {
+        min: Math.max(0, minVal - padding),
+        max: maxVal + padding
+    };
+  }
 
-      const gridStyle = { color: c.grid, lineWidth: 1 };
+  function buildCharts(results, factors) {
+    destroyCharts();
+    const c         = getChartColors();
+    const gridStyle = { color: c.grid, lineWidth: 1 };
 
-      chartInstances.radar = new Chart(document.getElementById('radarChart'), {
+    const allFactorScores = results.flatMap(r => factors.map(f => parseFloat(r.factorScores[f] ?? 0)));
+    const allTotalScores = results.map(r => r.score);
+
+    const factorScale = calculateScaleLimits(allFactorScores, 0.1);
+    const totalScale = calculateScaleLimits(allTotalScores, 0.15); // Для загального рейтингу беремо трохи більший запас
+
+    chartInstances.radar = new Chart(document.getElementById('radarChart'), {
         type: 'radar',
         data: {
-          labels: factors,
-          datasets: results.map((r, i) => ({
-            label: r.name,
-            data: factors.map(f => r.factorScores[f] ?? 0),
-            backgroundColor: c.bg[i % c.bg.length],
-            borderColor:     c.border[i % c.border.length],
-            borderWidth: 1.5,
-            pointBackgroundColor: c.border[i % c.border.length],
-            pointRadius: 3,
-          }))
+            labels:   factors,
+            datasets: results.map((r, i) => ({
+                label:            r.name,
+                data:             factors.map(f => parseFloat(r.factorScores[f] ?? 0)),
+                backgroundColor:  c.bg[i % c.bg.length],
+                borderColor:      c.border[i % c.border.length],
+                borderWidth:      1.5,
+                pointBackgroundColor: c.border[i % c.border.length],
+                pointRadius:      3,
+            }))
         },
         options: {
-          responsive: true,
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: c.labels } } },
-          scales: {
-            r: {
-              min: 0, max: 100,
-              ticks: { stepSize: 20, font: { size: 10 }, color: c.ticks, backdropColor: 'transparent' },
-              pointLabels: { font: { size: 11 }, color: c.labels },
-              grid: { color: c.grid },
-              angleLines: { color: c.grid },
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: c.labels } } },
+            scales: {
+                r: {
+                    min: factorScale.min,
+                    max: factorScale.max,
+                    ticks: { font: { size: 10 }, color: c.ticks, backdropColor: 'transparent' },
+                    pointLabels: { font: { size: 11 }, color: c.labels },
+                    grid:        { color: c.grid },
+                    angleLines:  { color: c.grid },
+                }
             }
-          }
         }
-      });
-
-      chartInstances.hbar = new Chart(document.getElementById('hbarChart'), {
-        type: 'bar',
-        data: {
-          labels: results.map(r => r.name),
-          datasets: [{
-            label: 'Risk Adjusted Score',
-            data: results.map(r => r.score),
-            backgroundColor: results.map((_, i) => c.bg[i % c.bg.length]),
-            borderColor:     results.map((_, i) => c.border[i % c.border.length]),
-            borderWidth: 1.5,
-          }]
-        },
-        options: {
-          indexAxis: 'y', responsive: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ` Score: ${ctx.raw.toFixed(2)}` } }
-          },
-          scales: {
-            x: { min: 0, max: 1, ticks: { stepSize: 0.2, font: { size: 11 }, color: c.labels }, grid: gridStyle, border: { color: c.axis } },
-            y: { grid: { display: false }, ticks: { font: { size: 12 }, color: c.labels }, border: { color: c.axis } }
-          }
-        }
-      });
-
-      chartInstances.grouped = new Chart(document.getElementById('groupedChart'), {
-        type: 'bar',
-        data: {
-          labels: factors,
-          datasets: results.map((r, i) => ({
-            label: r.name,
-            data: factors.map(f => r.factorScores[f] ?? 0),
-            backgroundColor: c.bg[i % c.bg.length],
-            borderColor:     c.border[i % c.border.length],
-            borderWidth: 1.5,
-          }))
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: c.labels } } },
-          scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 }, color: c.labels }, border: { color: c.axis } },
-            y: { min: 0, max: 100, ticks: { stepSize: 20, font: { size: 11 }, color: c.labels }, grid: gridStyle, border: { color: c.axis } }
-          }
-        }
-      });
-    }
-
-    function logout() {
-      window.location.href = 'index.html';
-    }
-
-    // ── Ініціалізація ──
-    function init() {
-      setupNavbar();
-      setupPDFButton();
-      renderCalculatedAt(mockCalculatedAt);
-      renderResults(mockResults);
-      buildCharts(mockResults, mockFactors);
-    }
-
-    // При зміні мови — оновити тексти і перебудувати графіки
-    document.addEventListener('langChanged', () => {
-      setupNavbar();
-      setupPDFButton();
-      renderCalculatedAt(mockCalculatedAt);
-      renderResults(mockResults);
-      buildCharts(mockResults, mockFactors);
     });
 
-    // При зміні теми — перебудувати графіки з новими кольорами
-    // Перехоплюємо toggleTheme
-    const _origToggle = window.toggleTheme;
-    window.toggleTheme = function() {
-      _origToggle();
-      buildCharts(mockResults, mockFactors);
-    };
+    chartInstances.hbar = new Chart(document.getElementById('hbarChart'), {
+        type: 'bar',
+        data: {
+            labels:   results.map(r => r.name),
+            datasets: [{
+                label:           'Risk Adjusted Score',
+                data:            results.map(r => r.score),
+                backgroundColor: results.map((_, i) => c.bg[i % c.bg.length]),
+                borderColor:     results.map((_, i) => c.border[i % c.border.length]),
+                borderWidth:     1.5,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend:  { display: false },
+                tooltip: { callbacks: { label: ctx => ` Score: ${ctx.raw.toFixed(2)}` } }
+            },
+            scales: {
+                x: { 
+                    min: totalScale.min, 
+                    max: totalScale.max, 
+                    ticks: { font: { size: 11 }, color: c.labels }, 
+                    grid: gridStyle, 
+                    border: { color: c.axis } 
+                },
+                y: { grid: { display: false }, ticks: { font: { size: 12 }, color: c.labels }, border: { color: c.axis } }
+            }
+        }
+    });
 
-    // Старт після завантаження перекладів
-    document.addEventListener('langChanged', init, { once: true });
+    chartInstances.grouped = new Chart(document.getElementById('groupedChart'), {
+        type: 'bar',
+        data: {
+            labels:   factors,
+            datasets: results.map((r, i) => ({
+                label:           r.name,
+                data:            factors.map(f => parseFloat(r.factorScores[f] ?? 0)),
+                backgroundColor: c.bg[i % c.bg.length],
+                borderColor:     c.border[i % c.border.length],
+                borderWidth:     1.5,
+            }))
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: c.labels } } },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 11 }, color: c.labels }, border: { color: c.axis } },
+                y: { 
+                    min: factorScale.min, 
+                    max: factorScale.max, 
+                    ticks: { font: { size: 11 }, color: c.labels }, 
+                    grid: gridStyle, 
+                    border: { color: c.axis } 
+                }
+            }
+        }
+    });
+  }
+
+  // ─── NAVBAR ──────────────────────────────────────────────────────
+  function setupNavbar() {
+    const el   = document.getElementById('user-box');
+    const user = getUserFromToken();
+    if (!el || !user) return;
+    const roleKey = ROLE === 'ADMIN' ? 'nav.role_admin' : 'nav.role_pm';
+    el.innerHTML  = `${t(roleKey)}: <strong>${user.login}</strong>`;
+  }
+
+  // ─── ДАТА РОЗРАХУНКУ ─────────────────────────────────────────────
+  function renderCalculatedAt(isoDate) {
+    if (!isoDate) return;
+    const d         = new Date(isoDate);
+    const formatted = d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    + ' ' + d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+    const label = document.getElementById('calculated-at-label');
+    document.getElementById('calculated-at-text').textContent =
+        `${t('results.calculated_at') || 'Розраховано'}: ${formatted}`;
+    label.style.display = 'flex';
+  }
+
+  // ─── PDF ─────────────────────────────────────────────────────────
+  function setupPDFButton() {
+    document.getElementById('pdf-btn-label').textContent =
+        ROLE === 'ADMIN'
+            ? (t('results.btn_generate') || 'Згенерувати звіт')
+            : (t('results.btn_download') || 'Завантажити звіт');
+  }
+
+  async function handlePDF() {
+    const isUk = (localStorage.getItem('dss-lang') || 'uk') === 'uk';
+    const btn  = document.getElementById('pdf-btn');
+    btn.disabled = true;
+
+    try {
+        if (ROLE === 'ADMIN') {
+            await decisionApi.post(
+                `/api/decisions/${decisionId}/report`,
+                null,
+                { params: { isUk } }
+            );
+            alert(t('results.report_generated') || 'Звіт успішно згенеровано');
+        } else {
+            const response = await decisionApi.get(
+                `/api/decisions/${decisionId}/report/download`,
+                { responseType: 'blob' }
+            );
+            const url  = URL.createObjectURL(response.data);
+            const link = document.createElement('a');
+            link.href     = url;
+            link.download = `decision_report_${decisionId}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+    } catch (err) {
+        const status = err.response?.status;
+        if (status === 404) {
+            alert(t('results.report_not_ready') || 'Звіт ще не згенеровано адміністратором');
+        } else {
+            alert(t('results.report_error') || 'Помилка при роботі зі звітом');
+        }
+    } finally {
+        btn.disabled = false;
+    }
+  }
+
+  // ─── РЕЗУЛЬТАТИ ──────────────────────────────────────────────────
+  function renderResults(results) {
+    const list = document.getElementById('results-list');
+
+    list.innerHTML = results.map(r => `
+        <div class="alt-row ${r.isRecommended ? 'above' : 'below'}">
+            <span><span class="alt-rank">${r.rank}.</span> ${r.name}</span>
+            <span class="alt-score">${r.score.toFixed(2)}</span>
+        </div>`).join('');
+
+    const recommended = results.find(r => r.isRecommended);
+    const recoBlock   = document.getElementById('recommended-block');
+
+    if (recommended) {
+        recoBlock.style.display = 'flex';
+        document.getElementById('recommended-name').textContent = recommended.name;
+    } else {
+        recoBlock.style.display = 'none';
+    }
+
+    document.getElementById('reco-text').innerHTML = results.map(r => {
+        let template = r.rank === 1
+            ? t('results.reco_best')
+            : r.isRecommended
+                ? t('results.reco_good')
+                : t('results.reco_bad');
+
+        return (template || '')
+            .replace('{name}',  r.name)
+            .replace('{score}', r.score.toFixed(2));
+    }).join('<br/>');
+  }
+
+  // ─── ЗАВАНТАЖЕННЯ З БЕКУ ─────────────────────────────────────────
+  async function loadResults() {
+    if (!decisionId) {
+        alert('ID рішення не вказано');
+        window.location.href = ROLE === 'ADMIN' ? 'admin-dashboard.html' : 'investor-dashboard.html';
+        return;
+    }
+
+    const isUk = (localStorage.getItem('dss-lang') || 'uk') === 'uk';
+
+    try {
+        const response = await decisionApi.get(
+            `/api/decisions/${decisionId}/calculation/result`,
+            { params: { isUk } }
+        );
+
+        const data = response.data;
+
+        _results = data.alternatives.map((alt, i) => ({
+            rank:          i + 1,
+            name:          alt.name,
+            score:         parseFloat(alt.riskAdjustedScore),
+            weightedScore: parseFloat(alt.weightedScore),
+            riskLevel:     alt.riskLevel,
+            isRecommended: alt.isRecommended,
+            factorScores:  alt.factorScores || {}
+        }));
+
+        _results.sort((a, b) => b.score - a.score);
+        _results.forEach((r, i) => r.rank = i + 1);
+
+        _factors = Object.keys(_results[0]?.factorScores || {});
+
+        renderCalculatedAt(data.calculatedAt);
+        renderResults(_results);
+        setupNavbar();
+        setupPDFButton();
+        buildCharts(_results, _factors);
+
+    } catch (err) {
+        console.error('Помилка завантаження результатів:', err);
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+            window.location.href = 'main-page.html';
+        } else if (status === 404) {
+            alert('Результати не знайдено');
+            window.location.href = ROLE === 'ADMIN' ? 'admin-dashboard.html' : 'investor-dashboard.html';
+        } else {
+            alert('Помилка завантаження результатів');
+        }
+    }
+  }
+
+  // ─── ЛОГАУТ ──────────────────────────────────────────────────────
+  function logout() {
+    localStorage.removeItem('dss-token');
+    window.location.href = 'main-page.html';
+  }
+
+  // ─── ІНІЦІАЛІЗАЦІЯ ───────────────────────────────────────────────
+  document.addEventListener('langChanged', () => {
+    if (!window._resultsPageInit) {
+        window._resultsPageInit = true;
+
+        const user = getUserFromToken();
+        if (!user) {
+            window.location.href = 'main-page.html';
+            return;
+        }
+
+        loadResults();
+    } else {
+        loadResults();
+    }
+  });
+
+  const _origToggle = window.toggleTheme;
+  window.toggleTheme = function() {
+    _origToggle();
+    if (_results && _factors) {
+        buildCharts(_results, _factors);
+    }
+  };
   </script>
 
 </body>

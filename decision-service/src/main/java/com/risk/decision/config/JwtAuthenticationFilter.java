@@ -45,6 +45,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
 
+        System.out.println("=== JWT FILTER DEBUG ===");
+        System.out.println("URI: " + request.getRequestURI());
+        System.out.println("isTokenValid: " + jwtService.isTokenValid(jwt));
+        try {
+            System.out.println("Role: " + jwtService.extractRole(jwt));
+            System.out.println("UserId: " + jwtService.extractUserId(jwt));
+        } catch (Exception ex) {
+            System.out.println("Parse error: " + ex.getMessage());
+        }
+
         try {
 
             userLogin = jwtService.extractLogin(jwt);
@@ -56,7 +66,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String role = jwtService.extractRole(jwt);
                     Integer userId = jwtService.extractUserId(jwt);
 
-                    var authorities = List.of(new SimpleGrantedAuthority(role));
+                    if (role != null && !role.startsWith("ROLE_")) {
+                        role = "ROLE_" + role;
+                    }
+
+                    var authorities = (role != null)
+                            ? List.of(new SimpleGrantedAuthority(role))
+                            : List.<SimpleGrantedAuthority>of();
 
                     UserDetails userDetails = User.builder()
                             .username(userLogin)
@@ -76,7 +92,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
 
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            System.err.println("Помилка автентифікації користувача: " + e.getMessage());
+        }
 
         filterChain.doFilter(request, response);
     }

@@ -12,29 +12,29 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/{id}")
+    @GetMapping("/users/{id}")
     @PreAuthorize("hasRole('INVESTOR') or hasRole('ADMIN')")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Integer id){
         return ResponseEntity.ok(userService.getUserResponseById(id));
     }
 
-    @GetMapping("/internal/{login}")
+    @GetMapping("/internal/users/{login}")
     public ResponseEntity<UserResponse> getUserByLoginInternal(@PathVariable String login){
         return ResponseEntity.ok(userService.getUserResponseByLogin(login));
     }
 
-    @GetMapping("/search/users")
+    @GetMapping("/users")
     public ResponseEntity<List<UserResponse>> searchUsers(@RequestParam String name){
         return ResponseEntity.ok(userService.searchUsersByName(name));
     }
 
-    @PostMapping("/internal/batch-names")
+    @PostMapping("/internal/users/batch-names")
     public ResponseEntity<Map<Integer, String>> getUsersNamesByIds(@RequestBody List<Integer> ids) {
         return ResponseEntity.ok(userService.getNamesByIds(ids));
     }

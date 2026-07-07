@@ -37,6 +37,7 @@ public class CalculationResult {
     @Column(name = "risk_lvl", length = 50)
     private String riskLevel;
 
+    @Builder.Default
     @Column(name = "calculated_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime calculatedAt = ZonedDateTime.now();
 }

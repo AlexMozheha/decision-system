@@ -11,10 +11,12 @@ import com.risk.user.model.Role;
 import com.risk.user.repository.AppUserRepository;
 import com.risk.user.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +32,10 @@ public class AuthenticationService {
 
         Role userRole = roleRepository.findByName(UserRole.INVESTOR)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found: " + UserRole.INVESTOR.name()));
+
+        if (userRepository.existsByLogin(request.login())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "LOGIN_TAKEN");
+        }
 
         AppUser appUser  = AppUser.builder()
                 .login(request.login())

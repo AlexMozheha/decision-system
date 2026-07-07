@@ -22,7 +22,7 @@ public class WeightedSumCalculator {
         Map<Integer, Map<BigDecimal, BigDecimal>> scoreLookup = normalizedEvaluations.stream()
                 .collect(Collectors.groupingBy(
                         EvaluationValue::factorId,
-                        Collectors.toMap(EvaluationValue::rawValue, EvaluationValue::score)
+                        Collectors.toMap(EvaluationValue::rawValue, EvaluationValue::score, (existing, replacement) -> existing)
                 ));
 
         return altCalculationDtos.stream()
@@ -35,11 +35,18 @@ public class WeightedSumCalculator {
                                 Integer factorId = rawEval.factorId();
                                 BigDecimal rawValue = rawEval.rawValue();
 
-                                Map<BigDecimal, BigDecimal> factorScores = Optional.ofNullable(scoreLookup.get(factorId))
-                                        .orElseThrow(() -> new IllegalStateException("Normalized scores missing for factor: " + factorId));
+                                BigDecimal score;
 
-                                BigDecimal score = Optional.ofNullable(factorScores.get(rawValue))
-                                        .orElseThrow(() -> new IllegalStateException("Normalized score missing for raw value: " + rawValue));
+                                if(rawValue == null) {
+                                    score = rawEval.score();
+                                } else {
+
+                                    Map<BigDecimal, BigDecimal> factorScores = Optional.ofNullable(scoreLookup.get(factorId))
+                                            .orElseThrow(() -> new IllegalStateException("Normalized scores missing for factor: " + factorId));
+
+                                    score = Optional.ofNullable(factorScores.get(rawValue))
+                                            .orElseThrow(() -> new IllegalStateException("Normalized score missing for raw value: " + rawValue));
+                                }
 
                                 BigDecimal weight = Optional.ofNullable(factorParamsMap.get(factorId))
                                         .orElseThrow(() -> new IllegalArgumentException("Factor ID " + factorId + " not found."))

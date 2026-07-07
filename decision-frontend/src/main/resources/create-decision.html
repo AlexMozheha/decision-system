@@ -14,6 +14,8 @@
   </script>
 
   <link rel="stylesheet" href="theme.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="global.js"></script>
 
   <style>
@@ -111,9 +113,9 @@
 
     .risk-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
     .risk-input {
-      width: 64px;
+      width: 80px;
       border: 1.5px solid var(--border-input);
-      padding: 7px 8px;
+      padding: 7px 10px;
       font-size: 14px;
       color: var(--text-primary);
       background: var(--input-bg);
@@ -170,7 +172,6 @@
 <body>
 
   <nav class="navbar">
-    <!-- TODO: підставити ім'я з JWT -->
      <span class="navbar-logo" data-language="nav.logo">Decision System</span>
     <div class="navbar-right">
       <span class="user-label">
@@ -186,14 +187,13 @@
 
   <main class="main">
     <div class="left-col">
-      <!-- TODO: значення відправляється на POST /api/decisions -->
       <input class="name-input" id="decision-name" type="text" placeholder="Назва нового рішення" 
       data-language="create_decision.name_placeholder" data-language-attr="placeholder"/>
 
       <div class="window window-left">
         <div class="window-titlebar">
           <i class="ti ti-list" style="font-size:15px" aria-hidden="true"></i>
-          <span data-language="create_decision.window_alts">Альтернативи</span>
+          <span data-language="create_decision.window_alts">Альтернатива</span>
         </div>
         <div class="window-body">
           <div id="alt-list"></div>
@@ -216,14 +216,48 @@
           data-language="create_decision.enter_comment" data-language-attr="placeholder"></textarea>
         </div>
       </div>
-      <!-- TODO: POST /api/decisions зі статусом DRAFT -->
       <button class="btn-submit" onclick="saveDraft()" data-language="create_decision.save_draft"> 
         Зберегти як чернетку</button>
     </div>
   </main>
 
   <script>
+    let isPageInitialized = false;
     let counter = 0;
+
+    function initializePage() {
+    if (window._createPageInit) return;
+    window._createPageInit = true;
+
+    const user = getUserFromToken();
+    if (user) {
+        document.getElementById('username').textContent = user.login;
+    } else {
+        window.location.href = 'main-page.html';
+        return;
+    }
+
+    const params  = new URLSearchParams(window.location.search);
+    const draftId = params.get('id');
+
+    if (draftId) {
+        loadDraft(draftId);
+    } else {
+        // Додаємо елементи лише якщо список дійсно порожній
+        const list = document.getElementById('alt-list');
+        if (list && list.children.length === 0) {
+            addAlt();
+            addAlt();
+        }
+    }
+  }
+
+
+  if (window.isDssLangReady) {
+    initializePage();
+  } else {
+    document.addEventListener('langChanged', initializePage);
+  }
 
     function createAltItem(id) {
       const riskLabel = t('create_decision.risk_label') || 'Ризик';
@@ -243,7 +277,7 @@
         <div class="alt-fields">
           <input class="alt-name-input" type="text" placeholder="${placeholder}" />
           <span class="risk-label">${riskLabel}:</span>
-          <input class="risk-input" type="number" min="1" max="100" placeholder="1–100" />
+          <input class="risk-input" type="number" min="0" max="100" placeholder="0–100" autocomplete="off"/>
         </div>`;
       return div;
     }
@@ -260,44 +294,123 @@
       if (el) el.remove();
     }
 
-    function saveDraft() {
-      const name = document.getElementById('decision-name').value.trim();
-      const comments = document.getElementById('comments').value.trim();
+    async function saveDraft() {
+    const name = document.getElementById('decision-name').value.trim();
+    const comment = document.getElementById('comments').value.trim();
 
-      const altCalculationDtos = Array.from(document.querySelectorAll('.alt-item')).map(item => ({
-        name: item.querySelector('.alt-name-input').value.trim(),
-        risk: parseInt(item.querySelector('.risk-input').value) || null
-      }));
-
-      // TODO: надіслати на бек
-      // const token = localStorage.getItem('token');
-      // fetch('/api/decisions', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      //   body: JSON.stringify({ name, comments, altCalculationDtos, status: 'DRAFT' })
-      // }).then(() => window.location.href = 'investor-dashboard.html');
-
-      console.log({ name, comments, altCalculationDtos, status: 'DRAFT' });
+    if (!name) {
+        alert(t('create_decision.error_name') || 'Введіть назву рішення / Please enter a scenario name');
+        document.getElementById('decision-name').focus();
+        return;
     }
 
-    function logout() {
-      // TODO: localStorage.removeItem('token');
-      window.location.href = 'index.html';
+    const alternatives = Array.from(document.querySelectorAll('.alt-item')).map(item => {
+        const riskRaw = item.querySelector('.risk-input').value.trim();
+        return {
+            name: item.querySelector('.alt-name-input').value.trim(),
+            riskCoefficient: riskRaw === '' ? null : parseInt(riskRaw, 10)
+        };
+    });
+
+    if (alternatives.length === 0) {
+        alert(t('create_decision.error_no_alts') || 'Додайте хоча б одну альтернативу / Please add at least one alternative');
+        return;
     }
 
-    document.addEventListener('langChanged', () => {
-    if (counter === 0) { addAlt(); addAlt(); }}, { once: true });
+    const emptyAlt = alternatives.find(a => !a.name);
+    if (emptyAlt) {
+        alert(t('create_decision.error_alt_name') || 'Заповніть назви всіх альтернатив / Please fill in the names of all alternatives');
+        return;
+    }
 
-    document.addEventListener('langChanged', () => {
-      const items = document.querySelectorAll('.alt-item');
-      items.forEach(item => {
-      const id = item.getAttribute('data-id');
-      const nameVal = item.querySelector('.alt-name-input').value;
-      const riskVal = item.querySelector('.risk-input').value;
-      const newItem = createAltItem(id);
-      newItem.querySelector('.alt-name-input').value = nameVal;
-      newItem.querySelector('.risk-input').value     = riskVal;
-      item.replaceWith(newItem);});});
+    const invalidRisk = alternatives.find(a => a.riskCoefficient === null || isNaN(a.riskCoefficient) || a.riskCoefficient < 0 || a.riskCoefficient > 100);
+    if (invalidRisk) {
+        alert(t('create_decision.error_risk') || 'Ризик має бути числом від 0 до 100 / Risk coefficient must be a number between 0 and 100');
+        return;
+    }
+
+    const params  = new URLSearchParams(window.location.search);
+    const draftId = params.get('id');
+    const id = draftId ? parseInt(draftId, 10) : null;
+
+    const btn = document.querySelector('.btn-submit');
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = '...';
+
+    try {
+        await decisionApi.post('/api/scenarios', {
+            id,
+            name,
+            comment: comment || null,
+            alternatives
+        });
+
+        window.location.href = 'investor-dashboard.html';
+       } catch (err) {
+        console.error('Помилка збереження:', err);
+        const status = err.response?.status;
+        
+        if (status === 400) {
+            const backendMessage = err.response?.data?.message;
+            alert(backendMessage || t('create_decision.error_validation_400') || 'Перевірте правильність заповнення форми');
+        } else if (status === 401 || status === 403) {
+            window.location.href = 'main-page.html';
+        } else if (err.response && err.response.status === 409) {
+            alert('Цей сценарій вже відправлено на розрахунок! Зміни не можуть бути збережені.');
+            window.location.href = 'investor-dashboard.html';
+        }else {
+            alert(t('create_decision.error_server') || 'Помилка сервера. Спробуйте пізніше. / Server error. Please try again later.');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+    }
+  }
+
+  async function loadDraft(id) {
+    try {
+        const response = await decisionApi.get(`/api/scenarios/${id}/draft`);
+        const draft = response.data;
+
+        document.getElementById('decision-name').value = draft.name || '';
+        document.getElementById('comments').value = draft.comment || '';
+
+        document.getElementById('alt-list').innerHTML = '';
+        counter = 0;
+
+        if (draft.alternatives && draft.alternatives.length > 0) {
+            draft.alternatives.forEach(alt => {
+                counter++;
+                const list = document.getElementById('alt-list');
+                const item = createAltItem(counter);
+                list.appendChild(item);
+
+                item.querySelector('.alt-name-input').value = alt.name || '';
+                item.querySelector('.risk-input').value = alt.riskCoefficient ?? '';
+            });
+        } else {
+            addAlt();
+            addAlt();
+        }
+
+    } catch (err) {
+        console.error('Помилка завантаження чернетки:', err);
+        const status = err.response?.status;
+        if (status === 404) {
+            alert(t('create_decision.draft_not_found') || 'Чернетку не знайдено');
+            window.location.href = 'investor-dashboard.html';
+        } else if (status === 403) {
+            alert(t('create_decision.draft_forbidden') || 'Немає доступу до цієї чернетки');
+            window.location.href = 'investor-dashboard.html';
+        }
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('dss-token');
+    window.location.href = 'main-page.html';
+  }
 
   </script>
 

@@ -33,11 +33,15 @@ public class Decision {
     @Column(name = "dec_name", nullable = false, length = 100)
     private String name;
 
+    @Builder.Default
     @Column(name = "created_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime createdAt = ZonedDateTime.now();
 
     @Column(name = "max_score", nullable = false)
     private BigDecimal maxScore;
+
+    @Column(name = "comment")
+    private String comment;
 
     @OneToMany(mappedBy = "decision", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Alternative> alternatives;
@@ -52,7 +56,7 @@ public class Decision {
     private List<Report> calculationReports;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "method_id", nullable = false)
+    @JoinColumn(name = "method_id")
     private CalculationMethod calculationMethod;
 
 }

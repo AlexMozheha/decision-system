@@ -13,9 +13,10 @@ spring:
         service-name: calculation-service
         register: true
         prefer-ip-address: true
+        ip-address: host.docker.internal
         health-check-path: /actuator/health
         health-check-interval: 10s
-        instance-id: calculation-service-8082
+        instance-id: ${spring.application.name}:${server.port}:${random.value}
 
 logging:
   level:

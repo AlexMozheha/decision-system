@@ -14,6 +14,8 @@
   </script>
 
   <link rel="stylesheet" href="theme.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="global.js"></script>
 
   <style>
@@ -203,19 +205,25 @@
           <i class="ti ti-chevron-down" style="font-size:12px" aria-hidden="true"></i>
         </button>
         <div class="dropdown" id="drop-reg">
+          <label data-language="register_form.full_name">Повне ім'я</label>
+          <input type="text" id="reg-fullname" />
+
           <label data-language="register_form.login">Логін</label>
-          <input type="text" />
-          
+          <input type="text" id="reg-login" />
+
           <label data-language="register_form.email">Email</label>
-          <input type="email" />
-          
+          <input type="email" id="reg-email" />
+
           <label data-language="register_form.password">Пароль</label>
-          <input type="password" />
-          
+          <input type="password" id="reg-password" />
+
           <label data-language="register_form.repeat">Повтор пароля</label>
-          <input type="password" />
-          
-          <button class="dropdown-btn" data-language="nav.register">Зареєструватись</button>
+          <input type="password" id="reg-repeat" />
+
+          <div id="reg-error" style="color:red;font-size:12px;margin-top:8px;display:none;"></div>
+
+          <button class="dropdown-btn" onclick="handleRegister()" 
+              data-language="nav.register">Зареєструватись</button>
         </div>
       </div>
       
@@ -223,15 +231,19 @@
         <button class="btn-nav btn-nav-primary" onclick="toggleDropdown('login')">
           <span data-language="nav.login">Вхід</span> 
           <i class="ti ti-chevron-down" style="font-size:12px" aria-hidden="true"></i>
-        </button>
-        <div class="dropdown" id="drop-login">
+          </button>
+          <div class="dropdown" id="drop-login">
           <label data-language="login_form.login">Логін</label>
-          <input type="text" />
-          
+          <input type="text" id="login-login" />
+
           <label data-language="login_form.password">Пароль</label>
-          <input type="password" />
-          
-          <button class="dropdown-btn" data-language="login_form.submit">Підтвердити</button>
+          <input type="password" id="login-password" />
+
+          <div id="login-error" style="color:red;font-size:12px;margin-top:8px;display:none;"></div>
+
+          <button class="dropdown-btn" onclick="handleLogin()" data-language="login_form.submit">
+            Підтвердити
+          </button>
         </div>
       </div>
       
@@ -386,6 +398,97 @@
       document.getElementById('drop-login').style.display = 'none';
     }
     });
+
+    async function handleRegister() {
+    const fullName = document.getElementById('reg-fullname').value.trim();
+    const login    = document.getElementById('reg-login').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const repeat   = document.getElementById('reg-repeat').value;
+    const errorEl  = document.getElementById('reg-error');
+
+    if (!fullName || !login || !email || !password || !repeat) {
+        showError(errorEl, t('register_form.not_full_fields')); 
+        return;
+    }
+    if (password !== repeat) {
+        showError(errorEl, t('register_form.not_match')); 
+        return;
+    }
+    if (password.length < 6) {
+        showError(errorEl, t('register_form.invalid_password')); 
+        return;
+    }
+
+    try {
+        const response = await userApi.post('/api/auth/register', 
+        {fullName, email, login, password});
+        localStorage.setItem('dss-token', response.data.token);
+        window.location.href = 'investor-dashboard.html';
+    } catch (err) {
+        const backendMessage = err.response?.data?.message;
+        
+        let errorMsg = t('register_form.unknown_error');
+        if (backendMessage === 'LOGIN_TAKEN') {
+            errorMsg = t('register_form.login_taken');
+        } else if (err.response?.status === 400) {
+            errorMsg = t('register_form.not_full_fields');
+        }
+        
+        showError(errorEl, errorMsg);
+    }
+  }
+
+  async function handleLogin() {
+    const login    = document.getElementById('login-login').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errorEl  = document.getElementById('login-error');
+
+    if (!login || !password) {
+        showError(errorEl, 'Заповніть всі поля');
+        return;
+    }
+
+    try {
+        const response = await userApi.post('/api/auth/login', 
+        {login,password});
+
+        const token = response.data.token;
+
+        localStorage.setItem('dss-token', response.data.token);
+
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(window.atob(base64));
+
+        console.log('Декодований JWT Payload:', payload);
+
+        const role = payload.role; 
+
+        if (role === 'ROLE_ADMIN' || role === 'ADMIN') {
+            window.location.href = 'admin-dashboard.html';
+        } else {
+            window.location.href = 'investor-dashboard.html';
+        }
+    } catch (err) {
+    console.error('Повна помилка:', err);
+    console.error('Статус:', err.response?.status);
+    console.error('Тіло:', err.response?.data);
+    
+    container.innerHTML = `<div class="empty-state">
+        Помилка: ${err.response?.status} — ${JSON.stringify(err.response?.data)}
+    </div>`;
+    }
+  }
+
+  function showError(el, message) {
+    el.textContent = message;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+
+  
+
 
   </script>
 </body>

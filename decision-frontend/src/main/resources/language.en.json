@@ -13,11 +13,20 @@
     "submit": "Confirm"
   },
   "register_form": {
+    "full_name": "Full name",
     "login": "Login",
     "email": "Email",
     "password": "Password",
     "repeat": "Repeat password",
-    "submit": "Register"
+    "submit": "Register",
+    "not_full_fields": "Please fill in all fields",
+    "not_match": "Passwords do not match",
+    "invalid_email": "Invalid email format",
+    "invalid_login": "Login must contain only Latin letters, numbers, dots, underscores, or hyphens",
+    "invalid_password": "Password must be at least 6 characters long",
+    "login_taken": "This login is already taken",
+    "auth_error": "Invalid login or password",
+    "unknown_error": "Something went wrong. Please try again later"
   },
   "investor_dashboard": {
     "create_btn": "Create new evaluation scenario",
@@ -81,7 +90,13 @@
     "add_alt": "Add alternative",
     "save_draft": "Save as draft",
     "risk_label": "Risk",
-    "enter_comment": "Enter a comment"
+    "enter_comment": "Enter a comment",
+    "error_name": "Please enter a scenario name",
+    "error_no_alts": "Please add at least one alternative",
+    "error_alt_name": "Please fill in the names of all alternatives",
+    "error_risk": "Risk value must be a number between 0 and 100",
+    "error_validation_400": "Please check the form data (Max name length is 150 characters)",
+    "error_server": "Server error. Please try again later."
   },
   "calculate": {
     "guide_title": "Instructions",
@@ -94,11 +109,11 @@
     "guide_dir_title": "Factor Direction (Is Growing?)",
     "guide_dir_desc": "<b>true</b>: More is better (Quality, Performance).<br><b>false</b>: Less is better (Price, Delivery time).",
     "info_title": "Investor order information",
-    "info_investor_login": "Investor login:",
+    "info_investor_login": "Investor name:",
     "info_email": "Email:",
     "info_decision_name": "Scenario name:",
     "info_alts": "Investor alternatives:",
-    "info_comments": "Comments / wishes:",
+    "info_comments": "Comments:",
     "decision_name": "Scenario name",
     "method": "Method",
     "max_score": "Max Score",
@@ -112,7 +127,8 @@
     "grows_no": "No (less is better)",
     "add_alt": "+ Add Alternative",
     "add_factor": "+ Add Factor",
-    "calculate_btn": "Calculate"
+    "calculate_btn": "Calculate",
+    "col_unit": "Unit of measurement"
   },
     "main": {
     "role_pm": "Investor",

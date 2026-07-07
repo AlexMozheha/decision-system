@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        body {
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #4A154B;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        h1 { color: #4A154B; font-size: 22px; margin-bottom: 5px; }
+        .meta-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #F4EDF6;
+            color: #4A154B;
+        }
+        .recommended-true { color: green; font-weight: bold; }
+        .recommended-false { color: red; }
+        .summary-section {
+            background-color: #F8F6F9;
+            border-left: 4px solid #4A154B;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .summary-item {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 th:text="${isUk} ? 'АНАЛІТИЧНИЙ ЗВІТ СППР' : 'DSS ANALYTICAL REPORT'">АНАЛІТИЧНИЙ ЗВІТ СППР</h1>
+
+    <div class="meta-info">
+        <p>
+            <strong th:text="${isUk} ? 'Задача:' : 'Decision Task:'">Задача:</strong>
+            <span th:text="${decisionName}">Назва задачі</span>
+        </p>
+        <p>
+            <strong th:text="${isUk} ? 'Дата розрахунку:' : 'Calculation Date:'">Дата розрахунку:</strong>
+            <span th:text="${calculatedAt}">Дата</span>
+        </p>
+    </div>
+</div>
+
+<h3 th:text="${isUk} ? '1. Результати ранжування альтернатив' : '1. Alternative Ranking Results'">1. Результати ранжування альтернатив</h3>
+
+<table>
+    <thead>
+    <tr>
+        <th th:text="${isUk} ? 'Ранг' : 'Rank'">Rank</th>
+        <th th:text="${isUk} ? 'Альтернатива' : 'Alternative'">Alternative</th>
+        <th th:text="${isUk} ? 'Ваговий бал' : 'Weighted Score'">Weighted Score</th>
+        <th th:text="${isUk} ? 'Бал з урахуванням ризику' : 'Risk-Adjusted Score'">Risk-Adjusted Score</th>
+        <th th:text="${isUk} ? 'Рівень ризику' : 'Risk Level'">Risk Level</th>
+        <th th:text="${isUk} ? 'Рекомендація' : 'Recommendation'">Recommendation</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="alt, iter : ${alternatives}">
+        <td th:text="${iter.index + 1}">1</td>
+        <td th:text="${alt.name}">Supplier A</td>
+        <td th:text="${alt.weightedScore}">0.85</td>
+        <td th:text="${alt.riskAdjustedScore}">0.72</td>
+        <td th:text="${alt.riskLevel}">LOW</td>
+        <td>
+            <span th:if="${alt.isRecommended}" class="recommended-true"
+                  th:text="${isUk} ? 'Рекомендовано' : 'Recommended'">Рекомендовано</span>
+            <span th:if="${!alt.isRecommended}" class="recommended-false"
+                  th:text="${isUk} ? 'Не рекомендовано' : 'Not Recommended'">Не рекомендовано</span>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<h3 th:text="${isUk} ? '2. Комплексний аналітичний висновок' : '2. Comprehensive Analytical Summary'">2. Комплексний аналітичний висновок</h3>
+
+<div class="summary-section">
+    <div class="summary-item" th:each="text : ${recommendationTexts}">
+        <p th:text="${text}"></p>
+    </div>
+</div>
+
+</body>
+</html>

@@ -24,7 +24,7 @@ public class AppUser implements UserDetails {
     @Column(name = "user_id", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", referencedColumnName = "role_id", nullable = false)
     private Role role;
 
@@ -40,6 +40,7 @@ public class AppUser implements UserDetails {
     @Column(name = "email", nullable = false)
     private String email;
 
+    @Builder.Default
     @Column(name = "is_deleted", columnDefinition = "boolean default false")
     private Boolean isDeleted = false;
 

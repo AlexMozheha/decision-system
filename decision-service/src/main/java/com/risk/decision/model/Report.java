@@ -23,6 +23,7 @@ public class Report {
     @JoinColumn(name = "dec_id", nullable = false)
     private Decision decision;
 
+    @Builder.Default
     @Column(name = "created_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime createdAt = ZonedDateTime.now();
 

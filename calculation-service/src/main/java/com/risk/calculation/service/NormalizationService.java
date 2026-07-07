@@ -22,22 +22,6 @@ public class NormalizationService {
     private static final MathContext MATH_CONTEXT = new MathContext(DECIMAL_SCALE, RoundingMode.HALF_UP);
 
 
-
-
-//    public Map<Integer, List<BigDecimal>> groupRawValuesByFactor(CalculationRequest request) {
-//
-//        return request.alternatives().stream()
-//                .flatMap(alternative -> alternative.values().stream())
-//                .collect(Collectors.groupingBy(
-//                        EvaluationValue::factorId,
-//
-//                        Collectors.mapping(
-//                                EvaluationValue::rawValue,
-//                                Collectors.toList()
-//                        )
-//                ));
-//    }
-
     public Map<Integer, BigDecimal> calculateMeanValues(Map<Integer, List<BigDecimal>> rawValuesByFactor) {
 
         return rawValuesByFactor.entrySet().stream()
@@ -48,7 +32,6 @@ public class NormalizationService {
                             BigDecimal sum = rawValues.stream()
                                     .reduce(BigDecimal.ZERO, BigDecimal::add);
                             BigDecimal count = BigDecimal.valueOf(rawValues.size());
-                            // 8 знаків після коми й режим округлення HALF_UP
                             return sum.divide(
                                     count,
                                     MATH_CONTEXT);
@@ -107,12 +90,9 @@ public class NormalizationService {
                     BigDecimal stdDev = stdDevValues.get(factorId);
                     FactorParams params = factorParamsMap.get(factorId);
 
-                    BigDecimal zScore;
-                    if (stdDev == null || stdDev.compareTo(BigDecimal.ZERO) == 0) {
-                        zScore = BigDecimal.ZERO;
-                    } else {
-                        zScore = (rawValue.subtract(mean)).divide(stdDev, MATH_CONTEXT);
-                    }
+                    BigDecimal zScore = (stdDev == null || stdDev.compareTo(BigDecimal.ZERO) == 0)
+                            ? BigDecimal.ZERO : (rawValue.subtract(mean)).divide(stdDev, MATH_CONTEXT);
+
 
                     if (!params.isGrowing()) {
                         zScore = zScore.multiply(new BigDecimal("-1"));
@@ -123,36 +103,35 @@ public class NormalizationService {
                             rawValue,
                             zScore
                     );
-                }).collect(Collectors.toList());
+                }).toList();
 
-        BigDecimal zMin = allEvaluationsWithZScore.stream()
-                .map(ZScoreEvaluation::zScore)
-                .min(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO);
-
-        BigDecimal zMax = allEvaluationsWithZScore.stream()
-                .map(ZScoreEvaluation::zScore)
-                .max(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO);
-
-        BigDecimal zRange = zMax.subtract(zMin);
-
-        if (zRange.compareTo(BigDecimal.ZERO) == 0) {
-            BigDecimal defaultScore = maxScore.divide(new BigDecimal("2"), MATH_CONTEXT);
-            return allEvaluationsWithZScore.stream()
-                    .map(eval -> new EvaluationValue(eval.factorId(), eval.rawValue(), defaultScore))
-                    .collect(Collectors.toList());
-        }
+        Map<Integer, List<ZScoreEvaluation>> evalsByFactor = allEvaluationsWithZScore.stream()
+                .collect(Collectors.groupingBy(ZScoreEvaluation::factorId));
 
         return allEvaluationsWithZScore.stream()
                 .map(eval -> {
-                    BigDecimal currentZ = eval.zScore();
 
-                    // Score = maxScore * (Z - Z_min) / (Z_max - Z_min)
-                    BigDecimal numerator = currentZ.subtract(zMin);
-                    BigDecimal normalizedValue = numerator.divide(zRange, MATH_CONTEXT);
+                    int factorId = eval.factorId();
+                    List<ZScoreEvaluation> factorGroup = evalsByFactor.get(factorId);
 
-                    BigDecimal finalScore = maxScore.multiply(normalizedValue);
+                    BigDecimal zMin = factorGroup.stream().map(ZScoreEvaluation::zScore).min(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+                    BigDecimal zMax = factorGroup.stream().map(ZScoreEvaluation::zScore).max(BigDecimal::compareTo).orElse(BigDecimal.ZERO);
+                    BigDecimal zRange = zMax.subtract(zMin);
+
+                    BigDecimal finalScore;
+                    if(zRange.compareTo(BigDecimal.ZERO) == 0) {
+                        finalScore = maxScore.divide(new BigDecimal("2"), MATH_CONTEXT);
+                    } else {
+                        //((zScore - zMin) / zRange)
+                        BigDecimal numerator = eval.zScore().subtract(zMin);
+
+                        if (numerator.compareTo(BigDecimal.ZERO) == 0) {
+                            finalScore = BigDecimal.ZERO;
+                        } else {
+                            BigDecimal normalizedValue = numerator.divide(zRange, MATH_CONTEXT);
+                            finalScore = maxScore.multiply(normalizedValue);
+                        }
+                    }
 
                     return new EvaluationValue(
                             eval.factorId(),
@@ -163,6 +142,7 @@ public class NormalizationService {
                 .collect(Collectors.toList());
     }
 
+    // for the future
     public Map<Integer, BigDecimal> normRiskAlt(CalculationRequest request) {
 
         Map<Integer, BigDecimal> allRisks = request.altCalculationDtos().stream().collect(Collectors.toMap(AltCalculationDto::alternativeId, AltCalculationDto::riskCoefficient));

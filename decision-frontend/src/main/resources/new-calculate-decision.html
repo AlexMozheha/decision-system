@@ -13,6 +13,8 @@
     </script>
 
     <link rel="stylesheet" href="theme.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="global.js"></script>
 
     <style>
@@ -160,6 +162,53 @@
             border: 1px solid var(--border-input); padding: 3px 6px; font-size: 13px;
             width: 90%; color: var(--input-text); background: var(--input-bg);
         }
+
+        .alt-name-input[disabled], 
+        .alt-risk-input[disabled] {
+            background-color: var(--bg-disabled) !important;
+            color: #000000 !important; 
+            opacity: 1 !important;    
+            cursor: not-allowed;
+            -webkit-text-fill-color: #000000 !important;
+        }
+
+        .alt-cell-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 8px; 
+    }
+
+
+    .alt-field-group {
+    width: 100%;
+    text-align: center; 
+    }
+
+    .alt-name-input, .alt-risk-input {
+        display: block;
+        margin: 4px auto 0 auto; 
+        width: 90%;
+    }
+
+    .btn-remove-centered {
+        background: transparent;
+        border: 1px solid var(--border-input);
+        padding: 2px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        color: var(--text-primary);
+        display: block;
+        margin: 0 auto; 
+        transition: all 0.2s ease;
+    }
+
+    .btn-remove-centered:hover {
+        background: var(--s-failed-bg);
+        border-color: var(--s-failed-border);
+        color: var(--s-failed-color);
+    }
     </style>
 </head>
 <body>
@@ -278,243 +327,440 @@
     </div>
 
 <script>
-let factors = [
-    { name: 'Price',         unitOfMeasure: 'USD',    type: 'OBJECTIVE',  factorWeight: 0.5, isGrowing: false },
-    { name: 'Quality',       unitOfMeasure: 'points', type: 'OBJECTIVE',  factorWeight: 0.3, isGrowing: true  },
-    { name: 'DeliverySpeed', unitOfMeasure: 'days',   type: 'OBJECTIVE',  factorWeight: 0.2, isGrowing: false }
-];
+    let currentDecisionId = null;
+    let factors = [];
+    let altCalculationDtos = [];
 
-let altCalculationDtos = [
-    { name: 'Supplier A', description: '', riskCoefficient: 0.2,  values: {} },
-    { name: 'Supplier B', description: '', riskCoefficient: 0.15, values: {} },
-    { name: 'Supplier C', description: '', riskCoefficient: 0.25, values: {} }
-];
+    function initializeDashboard() {
+        if (window._dashboardInit) return;
+        window._dashboardInit = true;
 
-altCalculationDtos[0].values = { 'Price': { rawValue: 1200, score: null }, 'Quality': { rawValue: 8, score: null }, 'DeliverySpeed': { rawValue: 5, score: null } };
-altCalculationDtos[1].values = { 'Price': { rawValue: 900,  score: null }, 'Quality': { rawValue: 6, score: null }, 'DeliverySpeed': { rawValue: 7, score: null } };
-altCalculationDtos[2].values = { 'Price': { rawValue: 1000, score: null }, 'Quality': { rawValue: 7, score: null }, 'DeliverySpeed': { rawValue: 3, score: null } };
+        const user = getUserFromToken();
+        if (user) {
+            document.getElementById('username').textContent = user.login;
+        } else {
+            window.location.href = 'main-page.html';
+            return;
+        }
 
-function toggleGuide() {
-    const c = document.getElementById('guide-content');
-    const b = document.getElementById('guide-toggle-btn');
-    const hidden = c.style.display === 'none';
-    c.style.display = hidden ? 'block' : 'none';
-    b.textContent = hidden ? t('calculate.guide_hide') : t('calculate.guide_show');
-}
+        loadOrderData();
+    }
 
-function toggleDecisionInfo() {
-    const c = document.getElementById('decision-info-content');
-    const b = document.getElementById('info-toggle-btn');
-    const hidden = c.style.display === 'none';
-    c.style.display = hidden ? 'block' : 'none';
-    b.textContent = hidden ? t('calculate.guide_hide') : t('calculate.guide_show');
-}
-
-function validateScore(input) {
-    const maxScore = parseFloat(document.getElementById('maxScore').value) || 100;
-    let val = parseFloat(input.value);
-    if (isNaN(val)) return;
-    if (val < 0) input.value = 0;
-    if (val > maxScore) input.value = maxScore;
-}
-
-function validateAllScores() {
-    document.querySelectorAll('.score-input:not([disabled])').forEach(validateScore);
-}
-
-function updateFactorInputState(factorIndex) {
-    const el = document.getElementById(`factor-type-${factorIndex}`);
-    if (!el) return;
-    const isObjective = el.value === 'OBJECTIVE';
-    altCalculationDtos.forEach((alt, altIndex) => {
-        const rawInput   = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-raw`);
-        const scoreInput = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-score`);
-        if (rawInput && scoreInput) {
-            rawInput.disabled   = !isObjective;
-            scoreInput.disabled = isObjective;
-            if (isObjective)  scoreInput.value = '';
-            else              rawInput.value   = '';
+    document.addEventListener('langChanged', () => {
+        if (window._dashboardInit) {
+            renderTable();
         }
     });
-}
 
-function renderTable() {
-    const factorRow        = document.getElementById('factorRow');
-    const factorDetailRow  = document.getElementById('factorDetailRow');
-    const valueHeaderRow   = document.getElementById('valueHeaderRow');
-    const alternativesBody = document.getElementById('alternativesBody');
+    if (window.isDssLangReady) {
+        initializeDashboard();
+    } else {
+        document.addEventListener('langChanged', initializeDashboard);
+    }
 
-    const altParamLabel = t('calculate.col_alt_param') || 'Альтернатива / Параметр';
-    const typeLabel     = t('calculate.col_type')      || 'Тип';
-    const growsLabel    = t('calculate.col_grows')     || 'Зростає?';
-    const growsYes      = t('calculate.grows_yes')     || 'Так (більше краще)';
-    const growsNo       = t('calculate.grows_no')      || 'Ні (менше краще)';
-    const weightLabel   = t('calculate.col_weight')    || 'Вага';
-    const nameLabel     = t('calculate.col_name')      || 'Назва';
-    const riskLabel     = t('calculate.col_risk')      || 'Ризик';
+    function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+    }
 
-    factorRow.innerHTML        = `<th rowspan="3" style="min-width:160px;">${altParamLabel}</th>`;
-    factorDetailRow.innerHTML  = '';
-    valueHeaderRow.innerHTML   = '';
-    alternativesBody.innerHTML = '';
+    // ─── ЗАВАНТАЖЕННЯ ДАНИХ З БЕКЕНДУ ──────────────────────────────────
+    async function loadOrderData() {
+        currentDecisionId = getQueryParam('decisionId');
+        if (!currentDecisionId) {
+            alert('Помилка: Не вказано decisionId в URL параметрах.');
+            return;
+        }
 
-    factors.forEach((f, fIndex) => {
-        factorRow.innerHTML += `
-            <th colspan="2" class="factor-col-header">
-                <input type="text" id="factor-name-${fIndex}" value="${f.name}" placeholder="${nameLabel}"
-                    onchange="factors[${fIndex}].name = this.value">
-                <div class="factor-weight-row">
-                    ${weightLabel}:
-                    <input type="number" id="factor-weight-${fIndex}" value="${f.factorWeight}"
-                        step="0.01" min="0" max="1"
-                        onchange="factors[${fIndex}].factorWeight = parseFloat(this.value)">
-                </div>
-            </th>`;
+        try {
+            const response = await decisionApi.get(`/api/admin/scenarios/order?decisionId=${currentDecisionId}`);
+            const orderData = response.data;
 
-        factorDetailRow.innerHTML += `
-            <td colspan="2" class="factor-detail-cell">
-                <div class="factor-detail-item">
-                    <label>${typeLabel}:</label>
-                    <select id="factor-type-${fIndex}"
-                        onchange="factors[${fIndex}].type = this.value; updateFactorInputState(${fIndex})">
-                        <option value="OBJECTIVE"  ${f.type === 'OBJECTIVE'  ? 'selected' : ''}>OBJECTIVE</option>
-                        <option value="SUBJECTIVE" ${f.type === 'SUBJECTIVE' ? 'selected' : ''}>SUBJECTIVE</option>
-                    </select>
-                </div>
-                <div class="factor-detail-item">
-                    <label>${growsLabel}?</label>
-                    <select onchange="factors[${fIndex}].isGrowing = (this.value === 'true')">
-                        <option value="true"  ${f.isGrowing  ? 'selected' : ''}>${growsYes}</option>
-                        <option value="false" ${!f.isGrowing ? 'selected' : ''}>${growsNo}</option>
-                    </select>
-                </div>
-                <button class="btn-remove" onclick="removeFactor(${fIndex})">X</button>
-            </td>`;
+            document.getElementById('info-login').textContent = orderData.investorName || 'Не вказано';
+            document.getElementById('info-email').textContent = orderData.investorEmail || 'Не вказано';
+            document.getElementById('info-decision-name').textContent = orderData.name || 'Без назви';
+            document.getElementById('info-comments').textContent = orderData.comment || 'Коментарі відсутні.';
 
-        valueHeaderRow.innerHTML += `<th>Raw Value</th><th>Score</th>`;
-    });
+            const decisionInput = document.getElementById('decisionName');
+            decisionInput.value = `Розрахунок: ${orderData.name || 'Без назви'}`;
+            decisionInput.readOnly = true;
+            decisionInput.style.width = '900px';
 
-    altCalculationDtos.forEach((alt, altIndex) => {
-        let row = `<tr id="alternative-${altIndex}">
-            <td>
-                ${nameLabel}:<br>
-                <input class="alt-name-input" type="text" value="${alt.name}"
-                    onchange="altCalculationDtos[${altIndex}].name = this.value"><br>
-                ${riskLabel}:<br>
-                <input class="alt-risk-input" type="number" value="${alt.riskCoefficient}"
-                    step="0.01" min="0" max="1"
-                    onchange="altCalculationDtos[${altIndex}].riskCoefficient = parseFloat(this.value)">
-                <button class="btn-remove" onclick="removeAlternative(${altIndex})">X</button>
-            </td>`;
+            const infoAltsContainer = document.getElementById('info-alts');
+            infoAltsContainer.innerHTML = '';
+            if (orderData.alternatives && orderData.alternatives.length > 0) {
+                orderData.alternatives.forEach(alt => {
+                    const div = document.createElement('div');
+                    div.className = 'info-alt-item';
+                    div.textContent = `${alt.name} — коефіцієнт ризику: ${alt.riskCoefficient ?? 0.0}`;
+                    infoAltsContainer.appendChild(div);
+                });
+            } else {
+                infoAltsContainer.innerHTML = '<div>Альтернативи не знайдені</div>';
+            }
+
+            factors = [
+                { name: 'Price', unitOfMeasure: 'USD', type: 'OBJECTIVE', factorWeight: 0.5, isGrowing: false },
+                { name: 'Quality', unitOfMeasure: 'points', type: 'OBJECTIVE', factorWeight: 0.5, isGrowing: true }
+            ];
+
+            altCalculationDtos = orderData.alternatives.map(alt => {
+                let valuesMap = {};
+                factors.forEach(f => {
+                    valuesMap[f.name] = { rawValue: null, score: null };
+                });
+                return {
+                    name: alt.name,
+                    description: '',
+                    riskCoefficient: alt.riskCoefficient ?? 0.0,
+                    values: valuesMap,
+                    isExisting: true // Фіксуємо, що альтернатива прийшла з бази даних
+                };
+            });
+
+            renderTable();
+
+            if (orderData.statusName !== 'CALCULATING') {
+                await decisionApi.post(`/api/admin/scenarios/${currentDecisionId}/lock-for-calculation`);
+                console.log(`Рішення ${currentDecisionId} успішно заблоковано (переведено в CALCULATING).`);
+            } else {
+                console.log(`Рішення ${currentDecisionId} вже має статус CALCULATING, повторний лок пропущено.`);
+            }
+
+        } catch (err) {
+            console.error('Не вдалося завантажити дані замовлення:', err);
+            if (err.response?.status === 403 && err.response?.data === 'CALCULATING_NOW') {
+                alert('Це рішення зараз розраховується іншим аналітиком.');
+            } else {
+                alert('Помилка при отриманні даних рішення з сервера.');
+            }
+        }
+    }
+
+    function toggleGuide() {
+        const c = document.getElementById('guide-content');
+        const b = document.getElementById('guide-toggle-btn');
+        const hidden = c.style.display === 'none';
+        c.style.display = hidden ? 'block' : 'none';
+        b.textContent = hidden ? t('calculate.guide_hide') : t('calculate.guide_show');
+    }
+
+    function toggleDecisionInfo() {
+        const c = document.getElementById('decision-info-content');
+        const b = document.getElementById('info-toggle-btn');
+        const hidden = c.style.display === 'none';
+        c.style.display = hidden ? 'block' : 'none';
+        b.textContent = hidden ? t('calculate.guide_hide') : t('calculate.guide_show');
+    }
+
+    function validateScore(input) {
+        const maxScore = parseFloat(document.getElementById('maxScore').value) || 100;
+        let val = parseFloat(input.value);
+        if (isNaN(val)) return;
+        if (val < 0) input.value = 0;
+        if (val > maxScore) input.value = maxScore;
+    }
+
+    function validateAllScores() {
+        document.querySelectorAll('.score-input:not([disabled])').forEach(validateScore);
+    }
+
+    function handleFactorTypeChange(factorIndex, newType) {
+        factors[factorIndex].type = newType;
+
+        if (newType === 'SUBJECTIVE') {
+            factors[factorIndex].isGrowing = true;
+        }
+        
+        renderTable();
+    }
+
+    function updateFactorInputState(factorIndex) {
+        const el = document.getElementById(`factor-type-${factorIndex}`);
+        if (!el) return;
+        const isObjective = el.value === 'OBJECTIVE';
+        altCalculationDtos.forEach((alt, altIndex) => {
+            const rawInput   = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-raw`);
+            const scoreInput = document.getElementById(`alt-${altIndex}-factor-${factorIndex}-score`);
+            if (rawInput && scoreInput) {
+                rawInput.disabled   = !isObjective;
+                scoreInput.disabled = isObjective;
+                if (isObjective)  scoreInput.value = '';
+                else              rawInput.value   = '';
+            }
+        });
+    }
+
+    function renderTable() {
+        const factorRow        = document.getElementById('factorRow');
+        const factorDetailRow  = document.getElementById('factorDetailRow');
+        const valueHeaderRow   = document.getElementById('valueHeaderRow');
+        const alternativesBody = document.getElementById('alternativesBody');
+
+        const altParamLabel = t('calculate.col_alt_param') || 'Альтернатива / Параметр';
+        const typeLabel     = t('calculate.col_type')      || 'Тип';
+        const growsLabel    = t('calculate.col_grows')     || 'Зростає?';
+        const growsYes      = t('calculate.grows_yes')     || 'Так (більше краще)';
+        const growsNo       = t('calculate.grows_no')      || 'Ні (менше краще)';
+        const weightLabel   = t('calculate.col_weight')    || 'Вага';
+        const nameLabel     = t('calculate.col_name')      || 'Назва';
+        const riskLabel     = t('calculate.col_risk')      || 'Ризик';
+
+        factorRow.innerHTML        = `<th rowspan="3" style="min-width:250px;">${altParamLabel}</th>`;
+        factorDetailRow.innerHTML  = '';
+        valueHeaderRow.innerHTML   = '';
+        alternativesBody.innerHTML = '';
 
         factors.forEach((f, fIndex) => {
-            const evalData    = alt.values[f.name] || { rawValue: '', score: '' };
-            const isObjective = f.type === 'OBJECTIVE';
-            const rawValue    = isObjective ? (evalData.rawValue ?? '') : '';
-            const scoreValue  = !isObjective ? (evalData.score ?? '') : '';
+            factorRow.innerHTML += `
+                <th colspan="2" class="factor-col-header">
+                    <input type="text" id="factor-name-${fIndex}" value="${f.name}" placeholder="${nameLabel}"
+                        onchange="updateFactorName(${fIndex}, this.value)">
+                    <div class="factor-weight-row">
+                        ${weightLabel}:
+                        <input type="number" id="factor-weight-${fIndex}" value="${f.factorWeight}"
+                            step="0.01" min="0" max="1"
+                            onchange="factors[${fIndex}].factorWeight = parseFloat(this.value)">
+                    </div>
+                </th>`;
+        
+            const isSubjective = f.type === 'SUBJECTIVE';
 
-            row += `
-                <td><input type="number" class="raw-input"
-                    id="alt-${altIndex}-factor-${fIndex}-raw"
-                    value="${rawValue}"
-                    ${!isObjective ? 'disabled' : ''}
-                    onchange="updateAlternativeValue(${altIndex}, '${f.name}', 'rawValue', parseFloat(this.value))"></td>
-                <td><input type="number" class="score-input"
-                    id="alt-${altIndex}-factor-${fIndex}-score"
-                    value="${scoreValue}" min="0"
-                    ${isObjective ? 'disabled' : ''}
-                    onchange="validateScore(this); updateAlternativeValue(${altIndex}, '${f.name}', 'score', parseFloat(this.value))"></td>`;
+            factorDetailRow.innerHTML += `
+                <td colspan="2" class="factor-detail-cell">
+                    <div class="factor-detail-item">
+                        <label>${typeLabel}:</label>
+                        <select id="factor-type-${fIndex}"
+                            onchange="handleFactorTypeChange(${fIndex}, this.value)">
+                            <option value="OBJECTIVE"  ${f.type === 'OBJECTIVE'  ? 'selected' : ''}>OBJECTIVE</option>
+                            <option value="SUBJECTIVE" ${isSubjective ? 'selected' : ''}>SUBJECTIVE</option>
+                        </select>
+                    </div>
+                    <div class="factor-detail-item">
+                        <label>${growsLabel}?</label>
+                        <select ${isSubjective ? 'disabled' : ''} onchange="factors[${fIndex}].isGrowing = (this.value === 'true')">
+                            <option value="true"  ${f.isGrowing ? 'selected' : ''}>${growsYes}</option>
+                            <option value="false" ${!f.isGrowing ? 'selected' : ''}>${growsNo}</option>
+                        </select>
+                    </div>
+                    <div class="factor-detail-item">
+                        <label>${t('calculate.col_unit') || 'Одиниця виміру'}:</label>
+                        <input type="text" value="${f.unitOfMeasure || ''}" placeholder="USD, кг, ..."
+                            onchange="factors[${fIndex}].unitOfMeasure = this.value">
+                    </div>
+                    <button class="btn-remove" onclick="removeFactor(${fIndex})">X</button>
+                </td>`;
+
+            valueHeaderRow.innerHTML += `<th>Raw Value</th><th>Score</th>`;
         });
 
-        row += '</tr>';
-        alternativesBody.innerHTML += row;
-    });
+        altCalculationDtos.forEach((alt, altIndex) => {
+            const disableAltName = alt.isExisting ? 'disabled' : '';
+            const disableAltRisk = alt.isExisting ? 'disabled' : '';
+            const hideRemoveBtn = alt.isExisting ? 'style="display:none;"' : '';
 
-    factors.forEach((_, fIndex) => updateFactorInputState(fIndex));
-}
+            let row = `<tr id="alternative-${altIndex}">
+                <td>
+                    <div class="alt-cell-container">
+                        <div class="alt-field-group">
+                            ${nameLabel}:
+                            <input class="alt-name-input" type="text" value="${alt.name}" ${disableAltName}
+                                onchange="altCalculationDtos[${altIndex}].name = this.value">
+                        </div>
+                        <div class="alt-field-group">
+                            ${riskLabel}:
+                            <input class="alt-risk-input" type="number" value="${alt.riskCoefficient}" ${disableAltRisk}
+                                step="0.01" min="0" max="1"
+                                onchange="altCalculationDtos[${altIndex}].riskCoefficient = parseFloat(this.value)">
+                        </div>
+                        <button class="btn-remove-centered" ${hideRemoveBtn} onclick="removeAlternative(${altIndex})">X</button>
+                    </div>
+                </td>`;
 
-function addFactor() {
-    const newName = `Factor ${factors.length + 1}`;
-    factors.push({ name: newName, unitOfMeasure: 'N/A', type: 'OBJECTIVE', factorWeight: 0.1, isGrowing: true });
-    altCalculationDtos.forEach(alt => { alt.values[newName] = { rawValue: 0, score: null }; });
-    renderTable();
-}
+            factors.forEach((f, fIndex) => {
+                const evalData    = alt.values[f.name] || { rawValue: '', score: '' };
+                const isObjective = f.type === 'OBJECTIVE';
+                const rawValue    = isObjective ? (evalData.rawValue ?? '') : '';
+                const scoreValue  = !isObjective ? (evalData.score ?? '') : '';
 
-function removeFactor(index) {
-    const factorName = factors[index].name;
-    factors.splice(index, 1);
-    altCalculationDtos.forEach(alt => { delete alt.values[factorName]; });
-    renderTable();
-}
+                row += `
+                    <td><input type="number" class="raw-input"
+                        id="alt-${altIndex}-factor-${fIndex}-raw"
+                        value="${rawValue}"
+                        ${!isObjective ? 'disabled' : ''}
+                        onchange="updateAlternativeValue(${altIndex}, '${f.name}', 'rawValue', parseFloat(this.value))"></td>
+                    <td><input type="number" class="score-input"
+                        id="alt-${altIndex}-factor-${fIndex}-score"
+                        value="${scoreValue}" min="0"
+                        ${isObjective ? 'disabled' : ''}
+                        onchange="validateScore(this); updateAlternativeValue(${altIndex}, '${f.name}', 'score', parseFloat(this.value))"></td>`;
+            });
 
-function addAlternative() {
-    let newValues = {};
-    factors.forEach(f => { newValues[f.name] = { rawValue: null, score: null }; });
-    altCalculationDtos.push({ name: `Alternative ${altCalculationDtos.length + 1}`, description: '', riskCoefficient: 0.0, values: newValues });
-    renderTable();
-}
+            row += '</tr>';
+            alternativesBody.innerHTML += row;
+        });
 
-function removeAlternative(index) {
-    altCalculationDtos.splice(index, 1);
-    renderTable();
-}
-
-function updateAlternativeValue(altIndex, factorName, type, value) {
-    if (!altCalculationDtos[altIndex].values[factorName]) {
-        altCalculationDtos[altIndex].values[factorName] = { rawValue: null, score: null };
+        factors.forEach((_, fIndex) => updateFactorInputState(fIndex));
     }
-    altCalculationDtos[altIndex].values[factorName][type] = value;
-}
 
-function buildRequestPayload() {
-    return {
-        decisionName: document.getElementById('decisionName').value,
-        method:       document.getElementById('method').value,
-        maxScore:     parseFloat(document.getElementById('maxScore').value),
-        factorParams: factors.map(f => ({
-            name: f.name, unitOfMeasure: f.unitOfMeasure, type: f.type,
-            description: '', factorWeight: f.factorWeight, isGrowing: f.isGrowing
-        })),
-        altCalculationDtos: altCalculationDtos.map(alt => ({
-            name: alt.name, description: alt.description, riskCoefficient: alt.riskCoefficient,
-            values: factors.map(f => ({
-                factorName: f.name,
-                rawValue: f.type === 'OBJECTIVE'  ? (alt.values[f.name]?.rawValue ?? null) : null,
-                score:    f.type === 'SUBJECTIVE' ? (alt.values[f.name]?.score    ?? null) : null
-            }))
-        }))
-    };
-}
+    function updateFactorName(index, newName) {
+        const oldName = factors[index].name;
+        factors[index].name = newName;
 
-async function sendDecisionRequest() {
-    const payload  = buildRequestPayload();
-    const ENDPOINT = 'http://localhost:8081/api/decisions/make-decision';
-    try {
-        const response = await fetch(ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        altCalculationDtos.forEach(alt => {
+            if (alt.values[oldName]) {
+                alt.values[newName] = alt.values[oldName];
+                delete alt.values[oldName];
+            }
         });
-        const data = await response.json();
-        if (!response.ok) {
-            alert(`Помилка ${response.status}: ${JSON.stringify(data)}`);
-        } else {
-            sessionStorage.setItem('decisionResult', JSON.stringify(data));
-            window.location.href = 'admin-decision.html';
+    }
+
+    function addFactor() {
+        const newName = `Factor ${factors.length + 1}`;
+        factors.push({ name: newName, unitOfMeasure: 'N/A', type: 'OBJECTIVE', factorWeight: 0.1, isGrowing: true });
+        altCalculationDtos.forEach(alt => { alt.values[newName] = { rawValue: null, score: null }; });
+        renderTable();
+    }
+
+    function removeFactor(index) {
+        const factorName = factors[index].name;
+        factors.splice(index, 1);
+        altCalculationDtos.forEach(alt => { delete alt.values[factorName]; });
+        renderTable();
+    }
+
+    function addAlternative() {
+        let newValues = {};
+        factors.forEach(f => { newValues[f.name] = { rawValue: null, score: null }; });
+        altCalculationDtos.push({ name: `Alternative ${altCalculationDtos.length + 1}`, description: '', riskCoefficient: 0.0, values: newValues });
+        renderTable();
+    }
+
+    function removeAlternative(index) {
+        altCalculationDtos.splice(index, 1);
+        renderTable();
+    }
+
+    function updateAlternativeValue(altIndex, factorName, type, value) {
+        if (!altCalculationDtos[altIndex].values[factorName]) {
+            altCalculationDtos[altIndex].values[factorName] = { rawValue: null, score: null };
         }
-    } catch (error) {
-        alert(`Помилка мережі: ${error.message}`);
+        altCalculationDtos[altIndex].values[factorName][type] = isNaN(value) ? null : value;
     }
-}
 
-function logout() {
-    window.location.href = 'index.html';
-}
+    function buildRequestPayload() {
+        for (const alt of altCalculationDtos) {
+            for (const f of factors) {
+                const val = alt.values[f.name];
+                if (f.type === 'OBJECTIVE' && (val?.rawValue === null || val?.rawValue === undefined || isNaN(val?.rawValue))) {
+                    alert(`Заповніть Raw Value для фактора "${f.name}", альтернатива "${alt.name}"`);
+                    return null;
+                }
+                if (f.type === 'SUBJECTIVE' && (val?.score === null || val?.score === undefined || isNaN(val?.score))) {
+                    alert(`Заповніть Score для фактора "${f.name}", альтернатива "${alt.name}"`);
+                    return null;
+                }
+            }
+        }
+        return {
+            decisionId: parseInt(currentDecisionId), 
+            decisionName: document.getElementById('decisionName').value.trim(),
+            method:       document.getElementById('method').value,
+            maxScore:     parseFloat(document.getElementById('maxScore').value),
 
-// Перерендер при зміні мови
-document.addEventListener('langChanged', renderTable);
-// Початковий рендер
-document.addEventListener('langChanged', renderTable, { once: true });
+            factorParams: factors.map(f => ({
+                name:          f.name,
+                unitOfMeasure: f.unitOfMeasure,
+                type:          f.type,
+                description:   f.description || '',
+                factorWeight:  f.factorWeight,
+                isGrowing:     f.isGrowing
+            })),
+
+            alternativeRequests: altCalculationDtos.map(alt => ({
+                name:            alt.name,
+                description:     alt.description || '',
+                riskCoefficient: alt.riskCoefficient,
+                values: factors.map(f => ({
+                    factorName: f.name,
+                    rawValue:   f.type === 'OBJECTIVE'  ? (alt.values[f.name]?.rawValue ?? null) : null,
+                    score:      f.type === 'SUBJECTIVE' ? (alt.values[f.name]?.score    ?? null) : null
+                }))
+            }))
+        };
+    }
+
+    async function sendDecisionRequest() {
+        const btn = document.querySelector('.btn-calculate');
+
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = '...';
+
+        const payload = buildRequestPayload();
+
+        if (!payload) {        
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+        }
+
+        if (!payload.decisionName.trim()) {
+            alert(t('calculate.error_name') || 'Введіть назву рішення');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+        }
+
+        if (payload.factorParams.length === 0) {
+            alert(t('calculate.error_no_factors') || 'Додайте хоча б один фактор');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+        }
+
+        if (payload.alternativeRequests.length === 0) {
+            alert(t('calculate.error_no_alts') || 'Додайте хоча б одну альтернативу');
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+        }
+
+        const totalWeight = payload.factorParams.reduce((sum, f) => sum + f.factorWeight, 0);
+        if (Math.abs(totalWeight - 1.0) > 0.01) {
+            alert(`${t('calculate.error_weights') || 'Сума ваг факторів має дорівнювати 1.0. Поточна сума'}: ${totalWeight.toFixed(2)}`);
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+        }
+
+        try {
+            const response = await decisionApi.post('/api/admin/scenarios/calculations', payload);
+            sessionStorage.setItem('decisionResult', JSON.stringify(response.data));
+            window.location.href = `decision-result.html?id=${response.data.id}&role=ADMIN`;
+
+        } catch (err) {
+            console.error('Помилка розрахунку:', err);
+
+            const status = err.response?.status;
+            if (status === 400) {
+                const msg = err.response?.data?.message || JSON.stringify(err.response?.data);
+                alert(`${t('calculate.error_validation') || 'Помилка валідації'}: ${msg}`);
+            } else if (status === 401) {
+                window.location.href = 'main-page.html';
+            } else {
+                alert(t('calculate.error_server') || 'Помилка сервера. Спробуйте пізніше.');
+            }
+
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('dss-token');
+        window.location.href = 'main-page.html';
+    }
+
 </script>
 </body>
 </html>

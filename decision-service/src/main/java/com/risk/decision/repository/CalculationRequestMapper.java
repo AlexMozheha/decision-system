@@ -17,6 +17,8 @@ public interface CalculationRequestMapper {
 
     @Mapping(target = "decisionId", source = "decision.id")
     @Mapping(target = "method", source = "methodType")
+    @Mapping(target = "factorParams", source = "decision.factors")
+    @Mapping(target = "altCalculationDtos", source = "decision.alternatives")
     CalculationRequest toCalculationRequest(Decision decision, CalculationMethodType methodType);
 
 

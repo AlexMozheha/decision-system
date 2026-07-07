@@ -15,6 +15,7 @@
 
   <link rel="stylesheet" href="theme.css" />
 
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="global.js"></script>
 
   <style>
@@ -78,7 +79,7 @@
       font-size: 12px; padding: 4px 12px;
       font-weight: 500; white-space: nowrap; border: 1.5px solid;
     }
-    .s-draft       { background: var(--s-draft-bg);  color: var(--s-draft-color);  border-color: var(--s-raft-border); }
+    .s-draft       { background: var(--s-draft-bg);  color: var(--s-draft-color);  border-color: var(--s-draft-border); }
     .s-calculating { background: var(--s-calc-bg);   color: var(--s-calc-color);   border-color: var(--s-calc-border); }
     .s-calculated  { background: var(--s-done-bg);   color: var(--s-done-color);   border-color: var(--s-done-border); }
     .s-failed      { background: var(--s-failed-bg);   color: var(--s-failed-color);   border-color: var(--s-failed-border); }
@@ -179,123 +180,236 @@
   </div>
 
   <script>
-    const STATUS_ICONS = {
-      DRAFT:              'ti-pencil',
-      CALCULATING:        'ti-loader',
-      CALCULATED:         'ti-circle-check',
-      CALCULATION_FAILED: 'ti-alert-circle',
-    };
-    const STATUS_CSS = {
-      DRAFT:              's-draft',
-      CALCULATING:        's-calculating',
-      CALCULATED:         's-calculated',
-      CALCULATION_FAILED: 's-failed',
-    };
+  let currentPage = 0;
+  let currentSearch = '';
+  let isLoading = false;
 
-    function getStatusConfig(status) {
-      return {
+  function initializeDashboard() {
+    if (window._dashboardInit) return;
+    window._dashboardInit = true;
+
+    const user = getUserFromToken();
+    if (user) {
+        document.getElementById('username').textContent = user.login;
+    } else {
+        window.location.href = 'main-page.html';
+        return;
+    }
+
+    loadScenarios(currentSearch, currentPage);
+  }
+
+  function handleLanguageChange() {
+    if (window._dashboardInit) {
+        loadScenarios(currentSearch, currentPage);
+    } else {
+        initializeDashboard();
+    }
+  }
+
+  document.addEventListener('langChanged', handleLanguageChange);
+
+  if (window.isDssLangReady) {
+    initializeDashboard();
+  }
+
+  // ─── ЗАВАНТАЖЕННЯ СЦЕНАРІЇВ ──────────────────────────────────────
+  async function loadScenarios(search = '', page = 0) {
+    if (isLoading) return;
+    isLoading = true;
+
+    const container = document.getElementById('decisions-list');
+    container.innerHTML = `<div class="empty-state">
+        <i class="ti ti-loader" style="font-size:20px"></i>
+    </div>`;
+
+    try {
+        const response = await decisionApi.get('/api/scenarios', {
+            params: {
+                search: search || undefined,
+                page,
+                size: 20,
+                sort: 'createdAt,desc'
+            }
+        });
+
+        const page_data = response.data;
+        renderDecisions(page_data.content, search);
+
+    } catch (err) {
+        console.error('Scenario loading error:', err);
+        container.innerHTML = `<div class="empty-state">
+            ${t('investor_dashboard.load_error') || 'Loading error. Please try again later.'}
+        </div>`;
+    } finally {
+        isLoading = false;
+    }
+  }
+
+  // ─── ПОШУК З DEBOUNCE ────────────────────────────────────────────
+  let searchTimer = null;
+
+  function filterDecisions() {
+    const query = document.getElementById('search-input').value.trim();
+    currentSearch = query;
+
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        loadScenarios(query, 0);
+    }, 400);
+  }
+
+  // ─── РЕНДЕР ──────────────────────────────────────────────────────
+  const STATUS_ICONS = {
+    DRAFT:              'ti-pencil',
+    READY_FOR_CALCULATION: 'ti-send',
+    CALCULATING:        'ti-loader',
+    CALCULATED:         'ti-circle-check',
+    CALCULATION_FAILED: 'ti-alert-circle',
+  };
+  const STATUS_CSS = {
+    DRAFT:              's-draft',
+    READY_FOR_CALCULATION: 's-ready',
+    CALCULATING:        's-calculating',
+    CALCULATED:         's-calculated',
+    CALCULATION_FAILED: 's-failed',
+  };
+
+  function getStatusConfig(status) {
+    return {
         label: t(`statuses.${status}`) || status,
         icon:  STATUS_ICONS[status] || 'ti-circle',
         css:   STATUS_CSS[status]   || 's-draft',
-      };
-    }
+    };
+  }
 
-    // TODO: замінити на GET /api/decisions (з JWT токеном)
-    const mockDecisions = [
-      { id: 113, name: 'Оцінювання постачальників 2025', status: 'CALCULATED',         created_at: '2025-04-10', calculated_at: '2025-04-12' },
-      { id: 112, name: 'Аналіз логістичних альтернатив', status: 'CALCULATING',         created_at: '2025-04-08', calculated_at: null },
-      { id: 111, name: 'Порівняння підрядників',          status: 'CALCULATION_FAILED', created_at: '2025-04-05', calculated_at: null },
-      { id: 110, name: 'Вибір технологічної платформи',   status: 'DRAFT',              created_at: '2025-04-01', calculated_at: null },
-      { id: 109, name: 'Інвестиційний портфель Q2',       status: 'CALCULATED',         created_at: '2025-03-20', calculated_at: '2025-03-22' },
-    ];
+  function formatDate(dateStr) {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString('uk-UA', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  }
 
-    function formatDate(dateStr) {
-      if (!dateStr) return null;
-      return new Date(dateStr).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
+  function highlightText(text, query) {
+    if (!query) return text;
+    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(re, '<mark class="highlight">$1</mark>');
+  }
 
-    function handleCardClick(e, decision) {
-      e.preventDefault();
-      switch (decision.status) {
-        case 'DRAFT':             window.location.href = `create-decision.html?id=${decision.id}`; break;
-        case 'CALCULATED':        window.location.href = `decision-results.html?id=${decision.id}&role=INVESTOR`; break;
-        case 'CALCULATING':       openModal('modal-calculating'); break;
-        case 'CALCULATION_FAILED':openModal('modal-failed'); break;
-      }
-    }
+  function renderDecisions(decisions, query = '') {
+    const container = document.getElementById('decisions-list');
 
-    function highlightText(text, query) {
-      if (!query) return text;
-      const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      return text.replace(re, '<mark class="highlight">$1</mark>');
-    }
-
-    function renderDecisions(decisions, query = '') {
-      const container = document.getElementById('decisions-list');
-      if (!decisions || decisions.length === 0) {
-        container.innerHTML = `<div class="empty-state">${t('investor_dashboard.empty')}</div>`;
+    if (!decisions || decisions.length === 0) {
+        container.innerHTML = `<div class="empty-state">
+            ${t('investor_dashboard.empty') || 'Сценаріїв не знайдено'}
+        </div>`;
         return;
-      }
-      container.innerHTML = decisions.map(d => {
-        const s          = getStatusConfig(d.status);
-        const createdStr = formatDate(d.created_at);
-        const calcStr    = formatDate(d.calculated_at);
-        const nameHtml   = highlightText(d.name, query);
-        const clickable  = ['DRAFT','CALCULATED','CALCULATING','CALCULATION_FAILED'].includes(d.status);
+    }
+
+    container.innerHTML = decisions.map(d => {
+
+        const statusStr = d.statusName;
+        const normalizedDecision = { ...d, status: statusStr };
+
+        const s = getStatusConfig(statusStr);
+        const createdStr = formatDate(d.createdAt);
+        const calcStr = formatDate(d.calculatedAt);
+        const nameHtml = highlightText(d.name, query);
 
         return `
-          <div class="decision-card ${clickable ? '' : 'non-clickable'}"
-               onclick="handleCardClick(event, ${JSON.stringify(d).replace(/"/g, '&quot;')})">
+        <div class="decision-card"
+             data-id="${d.id}" 
+             data-status="${statusStr}" 
+             onclick="handleCardClick(event, this)">
             <div class="decision-left">
-              <span class="decision-num">№ ${d.id}</span>
-              <div class="decision-info">
-                <span class="decision-name">${nameHtml}</span>
-                <div class="decision-dates">
-                  <span><i class="ti ti-calendar-plus" style="font-size:11px"></i> ${t('investor_dashboard.date_created')}: ${createdStr}</span>
-                  ${calcStr ? `<span><i class="ti ti-calculator" style="font-size:11px"></i> ${t('investor_dashboard.date_calc')}: ${calcStr}</span>` : ''}
+                <span class="decision-num">№ ${d.id}</span>
+                <div class="decision-info">
+                    <span class="decision-name">${nameHtml}</span>
+                    <div class="decision-dates">
+                        <span>
+                            <i class="ti ti-calendar-plus" style="font-size:11px"></i>
+                            ${t('investor_dashboard.date_created')}: ${createdStr}
+                        </span>
+                        ${calcStr ? `
+                        <span>
+                            <i class="ti ti-calculator" style="font-size:11px"></i>
+                            ${t('investor_dashboard.date_calc')}: ${calcStr}
+                        </span>` : ''}
+                    </div>
                 </div>
-              </div>
             </div>
             <div class="decision-right">
-              <span class="status-badge ${s.css}">
-                <i class="ti ${s.icon}" style="font-size:13px" aria-hidden="true"></i>
-                ${s.label}
-              </span>
-              ${clickable
-                ? '<i class="ti ti-chevron-right chevron" aria-hidden="true"></i>'
-                : '<i class="ti ti-minus" style="font-size:16px;color:#ddd" aria-hidden="true"></i>'}
+                <span class="status-badge ${s.css}">
+                    <i class="ti ${s.icon}" style="font-size:13px"></i>
+                    ${s.label}
+                </span>
+                <i class="ti ti-chevron-right chevron"></i>
             </div>
-          </div>`;
-      }).join('');
+        </div>`;
+    }).join('');
+  }
+
+  // ─── НАВІГАЦІЯ ───────────────────────────────────────────────────
+  async function handleCardClick(e, cardEl) {
+    e.preventDefault();
+    const id = cardEl.getAttribute('data-id');
+    const status = cardEl.getAttribute('data-status');
+
+    cardEl.style.pointerEvents = 'none';
+    cardEl.style.opacity = '0.7';
+
+    try {
+        const response = await decisionApi.get(`/api/scenarios/${id}`);
+        const freshScenario = response.data;
+        const currentStatus = freshScenario.statusName; 
+        cardEl.setAttribute('data-status', currentStatus);
+
+    switch (currentStatus) {
+        case 'DRAFT':
+            window.location.href = `create-decision.html?id=${id}`;
+            break;
+        case 'CALCULATED':
+            window.location.href = `decision-result.html?id=${id}&role=INVESTOR`;
+            break;
+        case 'CALCULATING':
+            openModal('modal-calculating');
+            break;
+        case 'CALCULATION_FAILED':
+            openModal('modal-failed');
+            break;
     }
-
-    function filterDecisions() {
-      const query = document.getElementById('search-input').value.trim().toLowerCase();
-      const filtered = mockDecisions.filter(d =>
-        d.name.toLowerCase().includes(query) &&
-        d.status !== 'READY_FOR_CALCULATION'
-      );
-      renderDecisions(filtered, query);
+    } catch (err) {
+        console.error('Error checking scenario status:', err);
+        const oldStatus = cardEl.getAttribute('data-status');
+        if (oldStatus === 'DRAFT') {
+            window.location.href = `create-decision.html?id=${id}`;
+        } else if (oldStatus === 'CALCULATED') {
+            window.location.href = `decision-result.html?id=${id}&role=INVESTOR`;
+        } else {
+            openModal('modal-failed');
+        }
+    } finally {
+        cardEl.style.pointerEvents = 'auto';
+        cardEl.style.opacity = '1';
     }
+  }
 
-    function openModal(id)  { document.getElementById(id).classList.add('active'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+  // ─── МОДАЛКИ ─────────────────────────────────────────────────────
+  function openModal(id)  { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', e => {
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
         if (e.target === overlay) overlay.classList.remove('active');
-      });
     });
+  });
 
-    function logout() {
-      // TODO: localStorage.removeItem('token');
-      window.location.href = 'index.html';
-    }
+// ─── ЛОГАУТ ──────────────────────────────────────────────────────
+  function logout() {
+    localStorage.removeItem('dss-token');
+    window.location.href = 'main-page.html';
+  }
 
-    // Рендер при завантаженні перекладів і при їх зміні
-    document.addEventListener('langChanged', () => {
-      renderDecisions(mockDecisions.filter(d => d.status !== 'READY_FOR_CALCULATION'));
-    });
   </script>
 </body>
 </html>

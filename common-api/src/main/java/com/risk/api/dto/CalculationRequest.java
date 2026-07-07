@@ -21,7 +21,7 @@ public record CalculationRequest(
 
         @NotNull(message = "Max score cannot be null")
         @DecimalMin(value = "0.0", inclusive = false, message = "Max score must be positive")
-        BigDecimal maxScore, // UInput
+        BigDecimal maxScore,
 
         @NotNull(message = "Factor parameters list cannot be null")
         @Size(min = 1, message = "At least one factor parameter is required")
@@ -33,15 +33,4 @@ public record CalculationRequest(
         @Valid
         List<AltCalculationDto> altCalculationDtos
 ) {
-
-    public Map<Integer, List<BigDecimal>> getRawValuesGroupedByFactor() {
-
-        return this.altCalculationDtos().stream()
-                .flatMap(alternative -> alternative.values().stream())
-
-                .collect(Collectors.groupingBy(
-                        EvaluationValue::factorId,
-                        Collectors.mapping(EvaluationValue::rawValue, Collectors.toList())
-                ));
-    }
 }
