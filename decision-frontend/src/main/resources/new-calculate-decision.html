@@ -381,7 +381,7 @@
             document.getElementById('info-comments').textContent = orderData.comment || 'Коментарі відсутні.';
 
             const decisionInput = document.getElementById('decisionName');
-            decisionInput.value = `Розрахунок: ${orderData.name || 'Без назви'}`;
+            decisionInput.value = orderData.name || 'Без назви';
             decisionInput.readOnly = true;
             decisionInput.style.width = '900px';
 
@@ -398,22 +398,18 @@
                 infoAltsContainer.innerHTML = '<div>Альтернативи не знайдені</div>';
             }
 
-            factors = [
-                { name: 'Price', unitOfMeasure: 'USD', type: 'OBJECTIVE', factorWeight: 0.5, isGrowing: false },
-                { name: 'Quality', unitOfMeasure: 'points', type: 'OBJECTIVE', factorWeight: 0.5, isGrowing: true }
-            ];
+            factors = orderData.factors || [];
 
+            // Ініціалізуємо values як масив, що чітко відповідає індексам у масиві factors
             altCalculationDtos = orderData.alternatives.map(alt => {
-                let valuesMap = {};
-                factors.forEach(f => {
-                    valuesMap[f.name] = { rawValue: null, score: null };
-                });
+                let valuesArray = factors.map(() => ({ rawValue: null, score: null }));
                 return {
+                    alternativeId: alt.id,
                     name: alt.name,
                     description: '',
                     riskCoefficient: alt.riskCoefficient ?? 0.0,
-                    values: valuesMap,
-                    isExisting: true // Фіксуємо, що альтернатива прийшла з бази даних
+                    values: valuesArray,
+                    isExisting: true
                 };
             });
 
@@ -470,6 +466,26 @@
         if (newType === 'SUBJECTIVE') {
             factors[factorIndex].isGrowing = true;
         }
+        
+        altCalculationDtos.forEach(alt => {
+            if (alt.values && alt.values[factorIndex]) {
+                const currentVal = alt.values[factorIndex];
+                
+                if (newType === 'SUBJECTIVE') {
+                    // Більше не забиваємо нулями автоматично порожні значення
+                    if (currentVal.score === null || currentVal.score === undefined || currentVal.score === '') {
+                        currentVal.score = (currentVal.rawValue !== null && !isNaN(currentVal.rawValue) && currentVal.rawValue !== '') ? currentVal.rawValue : null;
+                    }
+                    currentVal.rawValue = null;
+                    
+                } else if (newType === 'OBJECTIVE') {
+                    if (currentVal.rawValue === null || currentVal.rawValue === undefined || currentVal.rawValue === '') {
+                        currentVal.rawValue = (currentVal.score !== null && !isNaN(currentVal.score) && currentVal.score !== '') ? currentVal.score : null;
+                    }
+                    currentVal.score = null;
+                }
+            }
+        });
         
         renderTable();
     }
@@ -577,7 +593,7 @@
                 </td>`;
 
             factors.forEach((f, fIndex) => {
-                const evalData    = alt.values[f.name] || { rawValue: '', score: '' };
+                const evalData    = alt.values[fIndex] || { rawValue: '', score: '' };
                 const isObjective = f.type === 'OBJECTIVE';
                 const rawValue    = isObjective ? (evalData.rawValue ?? '') : '';
                 const scoreValue  = !isObjective ? (evalData.score ?? '') : '';
@@ -587,12 +603,12 @@
                         id="alt-${altIndex}-factor-${fIndex}-raw"
                         value="${rawValue}"
                         ${!isObjective ? 'disabled' : ''}
-                        onchange="updateAlternativeValue(${altIndex}, '${f.name}', 'rawValue', parseFloat(this.value))"></td>
+                        onchange="updateAlternativeValue(${altIndex}, ${fIndex}, 'rawValue', this.value)"></td>
                     <td><input type="number" class="score-input"
                         id="alt-${altIndex}-factor-${fIndex}-score"
                         value="${scoreValue}" min="0"
                         ${isObjective ? 'disabled' : ''}
-                        onchange="validateScore(this); updateAlternativeValue(${altIndex}, '${f.name}', 'score', parseFloat(this.value))"></td>`;
+                        onchange="validateScore(this); updateAlternativeValue(${altIndex}, ${fIndex}, 'score', this.value)"></td>`;
             });
 
             row += '</tr>';
@@ -602,35 +618,28 @@
         factors.forEach((_, fIndex) => updateFactorInputState(fIndex));
     }
 
-    function updateFactorName(index, newName) {
-        const oldName = factors[index].name;
-        factors[index].name = newName;
-
-        altCalculationDtos.forEach(alt => {
-            if (alt.values[oldName]) {
-                alt.values[newName] = alt.values[oldName];
-                delete alt.values[oldName];
-            }
-        });
-    }
-
     function addFactor() {
         const newName = `Factor ${factors.length + 1}`;
         factors.push({ name: newName, unitOfMeasure: 'N/A', type: 'OBJECTIVE', factorWeight: 0.1, isGrowing: true });
-        altCalculationDtos.forEach(alt => { alt.values[newName] = { rawValue: null, score: null }; });
+        
+        // Синхронно розширюємо масив значень для кожної альтернативи
+        altCalculationDtos.forEach(alt => { alt.values.push({ rawValue: null, score: null }); });
         renderTable();
     }
 
+    function updateFactorName(index, newName) {
+        factors[index].name = newName;
+    }
+
     function removeFactor(index) {
-        const factorName = factors[index].name;
         factors.splice(index, 1);
-        altCalculationDtos.forEach(alt => { delete alt.values[factorName]; });
+        // Видаляємо відповідну ячейку з масиву значень кожної альтернативи
+        altCalculationDtos.forEach(alt => { alt.values.splice(index, 1); });
         renderTable();
     }
 
     function addAlternative() {
-        let newValues = {};
-        factors.forEach(f => { newValues[f.name] = { rawValue: null, score: null }; });
+        let newValues = factors.map(() => ({ rawValue: null, score: null }));
         altCalculationDtos.push({ name: `Alternative ${altCalculationDtos.length + 1}`, description: '', riskCoefficient: 0.0, values: newValues });
         renderTable();
     }
@@ -640,27 +649,31 @@
         renderTable();
     }
 
-    function updateAlternativeValue(altIndex, factorName, type, value) {
-        if (!altCalculationDtos[altIndex].values[factorName]) {
-            altCalculationDtos[altIndex].values[factorName] = { rawValue: null, score: null };
+    function updateAlternativeValue(altIndex, factorIndex, type, value) {
+        if (!altCalculationDtos[altIndex].values[factorIndex]) {
+            altCalculationDtos[altIndex].values[factorIndex] = { rawValue: null, score: null };
         }
-        altCalculationDtos[altIndex].values[factorName][type] = isNaN(value) ? null : value;
+        const parsedValue = (value === '' || isNaN(parseFloat(value))) ? null : parseFloat(value);
+        altCalculationDtos[altIndex].values[factorIndex][type] = parsedValue;
     }
 
     function buildRequestPayload() {
         for (const alt of altCalculationDtos) {
-            for (const f of factors) {
-                const val = alt.values[f.name];
-                if (f.type === 'OBJECTIVE' && (val?.rawValue === null || val?.rawValue === undefined || isNaN(val?.rawValue))) {
+            for (let i = 0; i < factors.length; i++) {
+                const f = factors[i];
+                const val = alt.values[i] || { rawValue: null, score: null };
+                
+                if (f.type === 'OBJECTIVE' && (val.rawValue === null || val.rawValue === undefined || val.rawValue === '')) {
                     alert(`Заповніть Raw Value для фактора "${f.name}", альтернатива "${alt.name}"`);
                     return null;
                 }
-                if (f.type === 'SUBJECTIVE' && (val?.score === null || val?.score === undefined || isNaN(val?.score))) {
+                if (f.type === 'SUBJECTIVE' && (val.score === null || val.score === undefined || val.score === '')) {
                     alert(`Заповніть Score для фактора "${f.name}", альтернатива "${alt.name}"`);
                     return null;
                 }
             }
         }
+
         return {
             decisionId: parseInt(currentDecisionId), 
             decisionName: document.getElementById('decisionName').value.trim(),
@@ -677,14 +690,19 @@
             })),
 
             alternativeRequests: altCalculationDtos.map(alt => ({
+                alternativeId: alt.alternativeId || null,
                 name:            alt.name,
                 description:     alt.description || '',
                 riskCoefficient: alt.riskCoefficient,
-                values: factors.map(f => ({
-                    factorName: f.name,
-                    rawValue:   f.type === 'OBJECTIVE'  ? (alt.values[f.name]?.rawValue ?? null) : null,
-                    score:      f.type === 'SUBJECTIVE' ? (alt.values[f.name]?.score    ?? null) : null
-                }))
+                values: factors.map((f, fIndex) => {
+                    const valObj = alt.values[fIndex];
+                    return {
+                        factorName: f.name,
+                        // Захищаємо бекенд від null у невідповідних полях, передаємо 0 у крайньому випадку
+                        rawValue:   f.type === 'OBJECTIVE'  ? (valObj?.rawValue ?? 0) : null,
+                        score:      f.type === 'SUBJECTIVE' ? (valObj?.score    ?? 0) : null
+                    };
+                })
             }))
         };
     }
@@ -760,7 +778,6 @@
         localStorage.removeItem('dss-token');
         window.location.href = 'main-page.html';
     }
-
 </script>
 </body>
 </html>

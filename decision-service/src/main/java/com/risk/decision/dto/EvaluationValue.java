@@ -16,5 +16,5 @@ public record EvaluationValue(
         @DecimalMin(value = "0.0", message = "Raw value must be zero or positive")
         BigDecimal rawValue,
 
-        @DecimalMin(value = "0.0", inclusive = false, message = "Score must be positive")
+        @DecimalMin(value = "0.0", message = "Score must be positive")
         BigDecimal score)implements EvalValueForValidation {}
