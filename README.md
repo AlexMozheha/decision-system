@@ -43,7 +43,7 @@ The root container encapsulates the individual microservices inside its service 
 To spin up all microservices, PostgreSQL, Consul, and the frontend with a single command, run:
 
 ```bash
-git clone [https://github.com/AlexMozheha/decision-system.git](https://github.com/AlexMozheha/decision-system.git)
+git clone https://github.com/AlexMozheha/decision-system.git
 cd decision-system
 docker compose up --build
 ```
