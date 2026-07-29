@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decision Support System — InvestorOffice</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+
+  <script>
+  document.documentElement.setAttribute(
+    'data-theme',
+    localStorage.getItem('dss-theme') || 'light'
+  );
+  </script>
+
+  <link rel="stylesheet" href="theme.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="global.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+
+    .main { padding: 28px 32px; }
+
+    .create-section { background: var(--create-bg); padding: 20px 24px; margin-bottom: 20px; }
+    .create-btn {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg-tertiary); border: 1.5px solid var(--border-card);
+      padding: 14px 20px; cursor: pointer; text-decoration: none; width: fit-content;
+    }
+    .create-btn:hover { border-color: #7a9ab8; background: var(--bg-secondary); }
+    .create-icon { width: 40px; height: 40px; background: #dce4f0; display: flex; 
+      align-items: center; justify-content: center; border: 1.5px solid var(--border-card);}
+    .create-icon i { font-size: 20px; color: #4a6a90; }
+    .create-label { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+
+    .decisions-section { background: var(--bg-tertiary); border: 2px solid var(--border-card); padding: 20px 24px; }
+    .decisions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 16px; }
+    .section-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .search-box {
+      display: flex; align-items: center;
+      background: var(--input-bg); border: 1.5px solid var(--border-card);
+    }
+    .search-box i { padding: 0 10px; font-size: 16px; color: var(--text-muted); }
+    .search-box input {
+      border: none; outline: none; padding: 7px 10px 7px 0;
+      font-size: 14px; background: transparent; color: var(--text-primary); width: 220px;
+    }
+    .search-box input::placeholder { color: var(--text-muted); }
+
+    .empty-state {
+      background: var(--card-bg); border: 1.5px solid var(--border-card);
+      padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;
+    }
+
+    .decision-card {
+      background: var(--card-bg); border: 1.5px solid var(--border-card);
+      padding: 14px 20px; margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; text-decoration: none;
+    }
+    .decision-card:last-child { margin-bottom: 0; }
+    .decision-card:hover { border-color: #7a9a8a; background: var(--bg-primary); }
+    .decision-card.non-clickable { cursor: default; }
+    .decision-card.non-clickable:hover { border-color: var(--border-card); background: var(--card-bg); }
+
+    .decision-left { display: flex; align-items: center; gap: 16px; flex: 1; }
+    .decision-num { font-size: 13px; color: var(--text-muted); min-width: 55px; }
+    .decision-info { display: flex; flex-direction: column; gap: 3px; }
+    .decision-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .decision-dates { font-size: 11px; color: var(--text-muted); display: flex; gap: 14px; }
+    .decision-dates span { display: flex; align-items: center; gap: 4px; }
+    .decision-right { display: flex; align-items: center; gap: 12px; }
+
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; padding: 4px 12px;
+      font-weight: 500; white-space: nowrap; border: 1.5px solid;
+    }
+    .s-draft       { background: var(--s-draft-bg);  color: var(--s-draft-color);  border-color: var(--s-draft-border); }
+    .s-calculating { background: var(--s-calc-bg);   color: var(--s-calc-color);   border-color: var(--s-calc-border); }
+    .s-calculated  { background: var(--s-done-bg);   color: var(--s-done-color);   border-color: var(--s-done-border); }
+    .s-failed      { background: var(--s-failed-bg);   color: var(--s-failed-color);   border-color: var(--s-failed-border); }
+
+    .chevron { font-size: 16px; color: var(--text-muted); }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: var(--modal-overlay); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--modal-bg); border: 2px solid; padding: 28px 32px;
+      max-width: 420px; width: 90%;
+    }
+    .modal-calculating { border-color: var(--s-calc-border);}
+    .modal-failed      { border-color: var(--s-failed-border); }
+    .modal-title { font-size: 15px; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    .modal-calculating .modal-title { color: var(--s-calc-color); }
+    .modal-failed      .modal-title { color: var(--s-failed-color); }
+    .modal-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 20px; }
+    .modal-close {
+      background: var(--bg-secondary); border: 1.5px solid var(--border-card);
+      padding: 7px 20px; font-size: 14px; color: var(--text-primary); cursor: pointer;
+    }
+    .modal-close:hover { background: var(--bg-tertiary); }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <span class="navbar-logo" data-language="nav.logo">Decision Support System</span>
+    <div class="navbar-right">
+      <span class="user-label">
+        <span data-language="nav.role_pm">Інвестор: </span>:
+        <strong id="username">User123</strong>
+      </span>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Toggle theme">
+        <i class="ti ti-moon" aria-hidden="true"></i>
+      </button>
+      <button class="btn-lang" id="btn-lang" onclick="toggleLang()">EN</button>
+      <button class="btn-logout" onclick="logout()" data-language="nav.logout">Вийти</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="create-section">
+      <a href="create-decision.html" class="create-btn">
+        <div class="create-icon"><i class="ti ti-plus" aria-hidden="true"></i></div>
+        <span class="create-label" data-language="investor_dashboard.create_btn">Створити новий сценарій оцінювання</span>
+      </a>
+    </div>
+
+    <div class="decisions-section">
+      <div class="decisions-header">
+        <span class="section-title" data-language="investor_dashboard.section_title">Мої сценарії оцінювання</span>
+        <div class="search-box">
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Пошук за назвою..."
+            data-language="investor_dashboard.search_placeholder"
+            data-language-attr="placeholder"
+            oninput="filterDecisions()"
+          />
+        </div>
+      </div>
+      <div id="decisions-list"></div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modal-calculating">
+    <div class="modal modal-calculating">
+      <div class="modal-title">
+        <i class="ti ti-loader" style="font-size:18px" aria-hidden="true"></i>
+        <span data-language="modals.calculating_title">Розрахунок виконується</span>
+      </div>
+      <p class="modal-desc" data-language="modals.calculating_desc">
+        Сценарій оцінювання передано аналітику та знаходиться в черзі на розрахунок.
+      </p>
+      <button class="modal-close" onclick="closeModal('modal-calculating')" data-language="modals.calculating_close">Зрозуміло</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-failed">
+    <div class="modal modal-failed">
+      <div class="modal-title">
+        <i class="ti ti-alert-circle" style="font-size:18px" aria-hidden="true"></i>
+        <span data-language="modals.failed_title">Помилка розрахунку</span>
+      </div>
+      <p class="modal-desc" data-language="modals.failed_desc">
+        Під час виконання розрахунку виникла помилка.
+      </p>
+      <button class="modal-close" onclick="closeModal('modal-failed')" data-language="modals.failed_close">Закрити</button>
+    </div>
+  </div>
+
+  <script>
+  let currentPage = 0;
+  let currentSearch = '';
+  let isLoading = false;
+
+  function initializeDashboard() {
+    if (window._dashboardInit) return;
+    window._dashboardInit = true;
+
+    const user = getUserFromToken();
+    if (user) {
+        document.getElementById('username').textContent = user.login;
+    } else {
+        window.location.href = 'main-page.html';
+        return;
+    }
+
+    loadScenarios(currentSearch, currentPage);
+  }
+
+  function handleLanguageChange() {
+    if (window._dashboardInit) {
+        loadScenarios(currentSearch, currentPage);
+    } else {
+        initializeDashboard();
+    }
+  }
+
+  document.addEventListener('langChanged', handleLanguageChange);
+
+  if (window.isDssLangReady) {
+    initializeDashboard();
+  }
+
+  // ─── ЗАВАНТАЖЕННЯ СЦЕНАРІЇВ ──────────────────────────────────────
+  async function loadScenarios(search = '', page = 0) {
+    if (isLoading) return;
+    isLoading = true;
+
+    const container = document.getElementById('decisions-list');
+    container.innerHTML = `<div class="empty-state">
+        <i class="ti ti-loader" style="font-size:20px"></i>
+    </div>`;
+
+    try {
+        const response = await decisionApi.get('/api/scenarios', {
+            params: {
+                search: search || undefined,
+                page,
+                size: 20,
+                sort: 'createdAt,desc'
+            }
+        });
+
+        const page_data = response.data;
+        renderDecisions(page_data.content, search);
+
+    } catch (err) {
+        console.error('Scenario loading error:', err);
+        container.innerHTML = `<div class="empty-state">
+            ${t('investor_dashboard.load_error') || 'Loading error. Please try again later.'}
+        </div>`;
+    } finally {
+        isLoading = false;
+    }
+  }
+
+  // ─── ПОШУК З DEBOUNCE ────────────────────────────────────────────
+  let searchTimer = null;
+
+  function filterDecisions() {
+    const query = document.getElementById('search-input').value.trim();
+    currentSearch = query;
+
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        loadScenarios(query, 0);
+    }, 400);
+  }
+
+  // ─── РЕНДЕР ──────────────────────────────────────────────────────
+  const STATUS_ICONS = {
+    DRAFT:              'ti-pencil',
+    READY_FOR_CALCULATION: 'ti-send',
+    CALCULATING:        'ti-loader',
+    CALCULATED:         'ti-circle-check',
+    CALCULATION_FAILED: 'ti-alert-circle',
+  };
+  const STATUS_CSS = {
+    DRAFT:              's-draft',
+    READY_FOR_CALCULATION: 's-ready',
+    CALCULATING:        's-calculating',
+    CALCULATED:         's-calculated',
+    CALCULATION_FAILED: 's-failed',
+  };
+
+  function getStatusConfig(status) {
+    return {
+        label: t(`statuses.${status}`) || status,
+        icon:  STATUS_ICONS[status] || 'ti-circle',
+        css:   STATUS_CSS[status]   || 's-draft',
+    };
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString('uk-UA', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  }
+
+  function highlightText(text, query) {
+    if (!query) return text;
+    const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(re, '<mark class="highlight">$1</mark>');
+  }
+
+  function renderDecisions(decisions, query = '') {
+    const container = document.getElementById('decisions-list');
+
+    if (!decisions || decisions.length === 0) {
+        container.innerHTML = `<div class="empty-state">
+            ${t('investor_dashboard.empty') || 'Сценаріїв не знайдено'}
+        </div>`;
+        return;
+    }
+
+    container.innerHTML = decisions.map(d => {
+
+        const statusStr = d.statusName;
+        const normalizedDecision = { ...d, status: statusStr };
+
+        const s = getStatusConfig(statusStr);
+        const createdStr = formatDate(d.createdAt);
+        const calcStr = formatDate(d.calculatedAt);
+        const nameHtml = highlightText(d.name, query);
+
+        return `
+        <div class="decision-card"
+             data-id="${d.id}" 
+             data-status="${statusStr}" 
+             onclick="handleCardClick(event, this)">
+            <div class="decision-left">
+                <span class="decision-num">№ ${d.id}</span>
+                <div class="decision-info">
+                    <span class="decision-name">${nameHtml}</span>
+                    <div class="decision-dates">
+                        <span>
+                            <i class="ti ti-calendar-plus" style="font-size:11px"></i>
+                            ${t('investor_dashboard.date_created')}: ${createdStr}
+                        </span>
+                        ${calcStr ? `
+                        <span>
+                            <i class="ti ti-calculator" style="font-size:11px"></i>
+                            ${t('investor_dashboard.date_calc')}: ${calcStr}
+                        </span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="decision-right">
+                <span class="status-badge ${s.css}">
+                    <i class="ti ${s.icon}" style="font-size:13px"></i>
+                    ${s.label}
+                </span>
+                <i class="ti ti-chevron-right chevron"></i>
+            </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ─── НАВІГАЦІЯ ───────────────────────────────────────────────────
+  async function handleCardClick(e, cardEl) {
+    e.preventDefault();
+    const id = cardEl.getAttribute('data-id');
+    const status = cardEl.getAttribute('data-status');
+
+    cardEl.style.pointerEvents = 'none';
+    cardEl.style.opacity = '0.7';
+
+    try {
+        const response = await decisionApi.get(`/api/scenarios/${id}`);
+        const freshScenario = response.data;
+        const currentStatus = freshScenario.statusName; 
+        cardEl.setAttribute('data-status', currentStatus);
+
+    switch (currentStatus) {
+        case 'DRAFT':
+            window.location.href = `create-decision.html?id=${id}`;
+            break;
+        case 'CALCULATED':
+            window.location.href = `decision-result.html?id=${id}&role=INVESTOR`;
+            break;
+        case 'CALCULATING':
+            openModal('modal-calculating');
+            break;
+        case 'CALCULATION_FAILED':
+            openModal('modal-failed');
+            break;
+    }
+    } catch (err) {
+        console.error('Error checking scenario status:', err);
+        const oldStatus = cardEl.getAttribute('data-status');
+        if (oldStatus === 'DRAFT') {
+            window.location.href = `create-decision.html?id=${id}`;
+        } else if (oldStatus === 'CALCULATED') {
+            window.location.href = `decision-result.html?id=${id}&role=INVESTOR`;
+        } else {
+            openModal('modal-failed');
+        }
+    } finally {
+        cardEl.style.pointerEvents = 'auto';
+        cardEl.style.opacity = '1';
+    }
+  }
+
+  // ─── МОДАЛКИ ─────────────────────────────────────────────────────
+  function openModal(id)  { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('active');
+    });
+  });
+
+// ─── ЛОГАУТ ──────────────────────────────────────────────────────
+  function logout() {
+    localStorage.removeItem('dss-token');
+    window.location.href = 'main-page.html';
+  }
+
+  </script>
+</body>
+</html>

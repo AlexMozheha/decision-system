@@ -3,13 +3,12 @@ package com.risk.decision.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+
+import lombok.*;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,14 +17,15 @@ public class CalculationResult {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "result_id", nullable = false)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "decision_id", nullable = false)
+    @JoinColumn(name = "dec_id", nullable = false)
     private Decision decision;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "alternative_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "alt_id", nullable = false)
     private Alternative alternative;
 
     @Column(name = "weighted_score", precision = 10, scale = 4)
@@ -37,6 +37,7 @@ public class CalculationResult {
     @Column(name = "risk_lvl", length = 50)
     private String riskLevel;
 
+    @Builder.Default
     @Column(name = "calculated_at", columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private ZonedDateTime calculatedAt = ZonedDateTime.now();
 }

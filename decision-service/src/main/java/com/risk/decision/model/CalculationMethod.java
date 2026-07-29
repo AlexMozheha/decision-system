@@ -1,13 +1,12 @@
 package com.risk.decision.model;
 
+import com.risk.enums.CalculationMethodType;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.*;
 
 @Entity
-@Data
+@Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -16,12 +15,14 @@ public class CalculationMethod {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "method_id", nullable = false)
     private Integer id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String name;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "name", nullable = false, unique = true, length = 50)
+    private CalculationMethodType name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
 }

@@ -3,13 +3,12 @@ package com.risk.decision.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.List;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+
+import lombok.*;
 
 @Entity
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -18,13 +17,14 @@ public class Alternative {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "alt_id", nullable = false)
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "decision_id", nullable = false)
+    @JoinColumn(name = "dec_id", nullable = false)
     private Decision decision;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "alternative_name", nullable = false, length = 255)
     private String name;
 
     @Column(columnDefinition = "TEXT")
@@ -36,7 +36,7 @@ public class Alternative {
     @OneToMany(mappedBy = "alternative", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Evaluation> evaluations;
 
-    @OneToOne(mappedBy = "alternative", cascade = CascadeType.ALL, orphanRemoval = true)
-    private CalculationResult calculationResult;
+    @OneToMany(mappedBy = "alternative", orphanRemoval = true)
+    private List<CalculationResult> calculationResults;
 
 }

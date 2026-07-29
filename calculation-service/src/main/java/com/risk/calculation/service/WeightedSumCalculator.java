@@ -1,8 +1,8 @@
 package com.risk.calculation.service;
 
-import com.risk.dto.EvaluationValue;
-import com.risk.dto.FactorParams;
-import com.risk.dto.Alternative;
+import com.risk.api.dto.AltCalculationDto;
+import com.risk.api.dto.EvaluationValue;
+import com.risk.api.dto.FactorParams;
 
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -15,19 +15,19 @@ import java.util.stream.Collectors;
 public class WeightedSumCalculator {
 
     public Map<Integer, BigDecimal> calculateWeightedSum(
-            List<Alternative> alternatives,
+            List<AltCalculationDto> altCalculationDtos,
             List<EvaluationValue> normalizedEvaluations,
             Map<Integer, FactorParams> factorParamsMap) {
 
         Map<Integer, Map<BigDecimal, BigDecimal>> scoreLookup = normalizedEvaluations.stream()
                 .collect(Collectors.groupingBy(
                         EvaluationValue::factorId,
-                        Collectors.toMap(EvaluationValue::rawValue, EvaluationValue::score)
+                        Collectors.toMap(EvaluationValue::rawValue, EvaluationValue::score, (existing, replacement) -> existing)
                 ));
 
-        return alternatives.stream()
+        return altCalculationDtos.stream()
                 .collect(Collectors.toMap(
-                        Alternative::alternativeId,
+                        AltCalculationDto::alternativeId,
                         alternative -> {
                             BigDecimal weightedSum = BigDecimal.ZERO;
 
@@ -35,11 +35,18 @@ public class WeightedSumCalculator {
                                 Integer factorId = rawEval.factorId();
                                 BigDecimal rawValue = rawEval.rawValue();
 
-                                Map<BigDecimal, BigDecimal> factorScores = Optional.ofNullable(scoreLookup.get(factorId))
-                                        .orElseThrow(() -> new IllegalStateException("Normalized scores missing for factor: " + factorId));
+                                BigDecimal score;
 
-                                BigDecimal score = Optional.ofNullable(factorScores.get(rawValue))
-                                        .orElseThrow(() -> new IllegalStateException("Normalized score missing for raw value: " + rawValue));
+                                if(rawValue == null) {
+                                    score = rawEval.score();
+                                } else {
+
+                                    Map<BigDecimal, BigDecimal> factorScores = Optional.ofNullable(scoreLookup.get(factorId))
+                                            .orElseThrow(() -> new IllegalStateException("Normalized scores missing for factor: " + factorId));
+
+                                    score = Optional.ofNullable(factorScores.get(rawValue))
+                                            .orElseThrow(() -> new IllegalStateException("Normalized score missing for raw value: " + rawValue));
+                                }
 
                                 BigDecimal weight = Optional.ofNullable(factorParamsMap.get(factorId))
                                         .orElseThrow(() -> new IllegalArgumentException("Factor ID " + factorId + " not found."))

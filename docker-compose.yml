@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+
+  postgres-db:
+    image: postgres:18-alpine
+    container_name: decision_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - decision-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  consul-server:
+    image: hashicorp/consul:1.22
+    container_name: decision-consul
+    ports:
+      - "${CONSUL_PORT:-8500}:8500"
+    command: "agent -dev -client=0.0.0.0"
+    networks:
+      - decision-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8500/v1/status/leader" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  calculation-service:
+    container_name: calculation_service_app
+    build:
+      context: .
+      dockerfile: ./calculation-service/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - CONSUL_HOST=${CONSUL_HOST}
+    depends_on:
+      consul-server:
+        condition: service_healthy
+    networks:
+      - decision-network
+
+  user-service:
+    container_name: user_service_app
+    build:
+      context: .
+      dockerfile: ./user-service/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CONSUL_HOST=${CONSUL_HOST}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      consul-server:
+        condition: service_healthy
+    networks:
+      - decision-network
+
+  decision-service:
+    container_name: decision_service_app
+    build:
+     context: .
+     dockerfile: ./decision-service/Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CONSUL_HOST=${CONSUL_HOST}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      consul-server:
+        condition: service_healthy
+    networks:
+      - decision-network
+
+networks:
+  decision-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local
+

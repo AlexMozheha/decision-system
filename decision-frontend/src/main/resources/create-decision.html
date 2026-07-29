@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decision System — Нове рішення</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+
+  <script>
+    document.documentElement.setAttribute(
+      'data-theme',
+      localStorage.getItem('dss-theme') || 'light'
+    );
+  </script>
+
+  <link rel="stylesheet" href="theme.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="global.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+
+    .main {
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      align-items: stretch; 
+      height: calc(100vh - 80px);
+      overflow: hidden;
+    }
+
+    .left-col, 
+    .right-col { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 14px; 
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .name-input {
+      width: 100%;
+      background: var(--input-bg);
+      border: 2px solid var(--border-blue);
+      padding: 13px 18px;
+      font-size: 15px;
+      color: var(--text-primary);
+      outline: none;
+    }
+    .name-input:focus { border-color: var(--border-blue); }
+    .name-input::placeholder { color:  var(--text-muted); }
+
+    .window { border: 2.5px solid; overflow: hidden; height: 100%; display: flex; 
+      flex-direction: column;}
+    .window-left  { border-color: var(--border-blue); }
+    .window-right { border-color: var(--border-green); }
+
+    .window-titlebar {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .window-left  .window-titlebar { background: var(--window-left-header); 
+      color: var(--window-left-text); border-bottom: 2px solid var(--border-blue) }
+    .window-right .window-titlebar { background: var(--window-right-header); 
+    color: var(--window-right-text); 
+      border-bottom: 2px solid var(--border-green); }
+
+    .window-body { flex-grow: 1; overflow-y: auto; padding: 14px; scrollbar-color: 
+      var(--text-faint) var(--bg-primary);}
+    .window-left  .window-body { background: var(--window-left-body); }
+    .window-right .window-body { background: var(--window-right-body); }
+
+    .alt-item {
+      background: var(--bg-primary);
+      border: 1.5px solid var(--border-blue);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .alt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .alt-label { font-size: 12px; color: var(--text-secondary); }
+    .btn-remove {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      line-height: 1;
+    }
+    .btn-remove:hover { background: var(--s-failed-bg); color: var(--s-failed-color); }
+
+    .alt-fields { display: flex; align-items: center; gap: 10px; }
+    .alt-name-input {
+      flex: 1;
+      border: 1.5px solid var(--border-input);
+      padding: 7px 10px;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      outline: none;
+    }
+    .alt-name-input:focus { border-color: var(--border-blue); }
+
+    .risk-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+    .risk-input {
+      width: 80px;
+      border: 1.5px solid var(--border-input);
+      padding: 7px 10px;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--input-bg);
+      outline: none;
+      text-align: center;
+    }
+    .risk-input:focus { border-color: var(--border-blue);}
+
+    .btn-add {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: transparent;
+      border: 1.5px dashed var(--border-primary);
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-add:hover { background: var(--bg-secondary); }
+
+    .comments-textarea {
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: transparent;
+      resize: none;
+      font-family: inherit;
+      line-height: 1.7;
+    }
+    .comments-textarea::placeholder { color: var(--text-muted); }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border-green);
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    
+    .btn-submit:hover { background: var(--bg-secondary); }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+     <span class="navbar-logo" data-language="nav.logo">Decision System</span>
+    <div class="navbar-right">
+      <span class="user-label">
+      <span  data-language="nav.role_pm">Інвестор:</span>
+       <strong id="username">User123</strong></span>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Toggle theme">
+        <i class="ti ti-moon" aria-hidden="true"></i>
+      </button>
+      <button class="btn-lang" id="btn-lang" onclick="toggleLang()">EN</button>
+      <button class="btn-logout" onclick="logout()" data-language="nav.logout">Вийти</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="left-col">
+      <input class="name-input" id="decision-name" type="text" placeholder="Назва нового рішення" 
+      data-language="create_decision.name_placeholder" data-language-attr="placeholder"/>
+
+      <div class="window window-left">
+        <div class="window-titlebar">
+          <i class="ti ti-list" style="font-size:15px" aria-hidden="true"></i>
+          <span data-language="create_decision.window_alts">Альтернатива</span>
+        </div>
+        <div class="window-body">
+          <div id="alt-list"></div>
+          <button class="btn-add" onclick="addAlt()">
+            <i class="ti ti-plus" style="font-size:15px" aria-hidden="true"></i>
+            <span id="btn-add-label" data-language="create_decision.add_alt">Додати альтернативу</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="window window-right">
+        <div class="window-titlebar">
+          <i class="ti ti-message" style="font-size:15px" aria-hidden="true"></i>
+          <span data-language="create_decision.window_comments">Коментарі</span>
+        </div>
+        <div class="window-body">
+          <textarea class="comments-textarea" id="comments" placeholder="Введіть коментар..."
+          data-language="create_decision.enter_comment" data-language-attr="placeholder"></textarea>
+        </div>
+      </div>
+      <button class="btn-submit" onclick="saveDraft()" data-language="create_decision.save_draft"> 
+        Зберегти як чернетку</button>
+    </div>
+  </main>
+
+  <script>
+    let isPageInitialized = false;
+    let counter = 0;
+
+    function initializePage() {
+    if (window._createPageInit) return;
+    window._createPageInit = true;
+
+    const user = getUserFromToken();
+    if (user) {
+        document.getElementById('username').textContent = user.login;
+    } else {
+        window.location.href = 'main-page.html';
+        return;
+    }
+
+    const params  = new URLSearchParams(window.location.search);
+    const draftId = params.get('id');
+
+    if (draftId) {
+        loadDraft(draftId);
+    } else {
+        // Додаємо елементи лише якщо список дійсно порожній
+        const list = document.getElementById('alt-list');
+        if (list && list.children.length === 0) {
+            addAlt();
+            addAlt();
+        }
+    }
+  }
+
+
+  if (window.isDssLangReady) {
+    initializePage();
+  } else {
+    document.addEventListener('langChanged', initializePage);
+  }
+
+    function createAltItem(id) {
+      const riskLabel = t('create_decision.risk_label') || 'Ризик';
+      const altLabel  = `${t('create_decision.window_alts') || 'Альтернатива'} ${id}`;
+      const placeholder = t('create_decision.name_placeholder') || 'Назва альтернативи';
+
+      const div = document.createElement('div');
+      div.className = 'alt-item';
+      div.setAttribute('data-id', id);
+      div.innerHTML = `
+        <div class="alt-header">
+          <span class="alt-label">${altLabel}</span>
+          <button class="btn-remove" onclick="removeAlt(${id})" title="Видалити">
+            <i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="alt-fields">
+          <input class="alt-name-input" type="text" placeholder="${placeholder}" />
+          <span class="risk-label">${riskLabel}:</span>
+          <input class="risk-input" type="number" min="0" max="100" placeholder="0–100" autocomplete="off"/>
+        </div>`;
+      return div;
+    }
+
+    function addAlt() {
+      counter++;
+      const list = document.getElementById('alt-list');
+      list.appendChild(createAltItem(counter));
+      list.parentElement.scrollTop = list.parentElement.scrollHeight;
+    }
+
+    function removeAlt(id) {
+      const el = document.querySelector('[data-id="' + id + '"]');
+      if (el) el.remove();
+    }
+
+    async function saveDraft() {
+    const name = document.getElementById('decision-name').value.trim();
+    const comment = document.getElementById('comments').value.trim();
+
+    if (!name) {
+        alert(t('create_decision.error_name') || 'Введіть назву рішення / Please enter a scenario name');
+        document.getElementById('decision-name').focus();
+        return;
+    }
+
+    const alternatives = Array.from(document.querySelectorAll('.alt-item')).map(item => {
+        const riskRaw = item.querySelector('.risk-input').value.trim();
+        return {
+            name: item.querySelector('.alt-name-input').value.trim(),
+            riskCoefficient: riskRaw === '' ? null : parseInt(riskRaw, 10)
+        };
+    });
+
+    if (alternatives.length === 0) {
+        alert(t('create_decision.error_no_alts') || 'Додайте хоча б одну альтернативу / Please add at least one alternative');
+        return;
+    }
+
+    const emptyAlt = alternatives.find(a => !a.name);
+    if (emptyAlt) {
+        alert(t('create_decision.error_alt_name') || 'Заповніть назви всіх альтернатив / Please fill in the names of all alternatives');
+        return;
+    }
+
+    const invalidRisk = alternatives.find(a => a.riskCoefficient === null || isNaN(a.riskCoefficient) || a.riskCoefficient < 0 || a.riskCoefficient > 100);
+    if (invalidRisk) {
+        alert(t('create_decision.error_risk') || 'Ризик має бути числом від 0 до 100 / Risk coefficient must be a number between 0 and 100');
+        return;
+    }
+
+    const params  = new URLSearchParams(window.location.search);
+    const draftId = params.get('id');
+    const id = draftId ? parseInt(draftId, 10) : null;
+
+    const btn = document.querySelector('.btn-submit');
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = '...';
+
+    try {
+        await decisionApi.post('/api/scenarios', {
+            id,
+            name,
+            comment: comment || null,
+            alternatives
+        });
+
+        window.location.href = 'investor-dashboard.html';
+       } catch (err) {
+        console.error('Помилка збереження:', err);
+        const status = err.response?.status;
+        
+        if (status === 400) {
+            const backendMessage = err.response?.data?.message;
+            alert(backendMessage || t('create_decision.error_validation_400') || 'Перевірте правильність заповнення форми');
+        } else if (status === 401 || status === 403) {
+            window.location.href = 'main-page.html';
+        } else if (err.response && err.response.status === 409) {
+            alert('Цей сценарій вже відправлено на розрахунок! Зміни не можуть бути збережені.');
+            window.location.href = 'investor-dashboard.html';
+        }else {
+            alert(t('create_decision.error_server') || 'Помилка сервера. Спробуйте пізніше. / Server error. Please try again later.');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+    }
+  }
+
+  async function loadDraft(id) {
+    try {
+        const response = await decisionApi.get(`/api/scenarios/${id}/draft`);
+        const draft = response.data;
+
+        document.getElementById('decision-name').value = draft.name || '';
+        document.getElementById('comments').value = draft.comment || '';
+
+        document.getElementById('alt-list').innerHTML = '';
+        counter = 0;
+
+        if (draft.alternatives && draft.alternatives.length > 0) {
+            draft.alternatives.forEach(alt => {
+                counter++;
+                const list = document.getElementById('alt-list');
+                const item = createAltItem(counter);
+                list.appendChild(item);
+
+                item.querySelector('.alt-name-input').value = alt.name || '';
+                item.querySelector('.risk-input').value = alt.riskCoefficient ?? '';
+            });
+        } else {
+            addAlt();
+            addAlt();
+        }
+
+    } catch (err) {
+        console.error('Помилка завантаження чернетки:', err);
+        const status = err.response?.status;
+        if (status === 404) {
+            alert(t('create_decision.draft_not_found') || 'Чернетку не знайдено');
+            window.location.href = 'investor-dashboard.html';
+        } else if (status === 403) {
+            alert(t('create_decision.draft_forbidden') || 'Немає доступу до цієї чернетки');
+            window.location.href = 'investor-dashboard.html';
+        }
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('dss-token');
+    window.location.href = 'main-page.html';
+  }
+
+  </script>
+
+</body>
+</html>

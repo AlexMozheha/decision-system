@@ -5,5 +5,5 @@ public enum FactorClassification {
     OBJECTIVE,
 
     /*Суб'єктивний оперує суб'єктивними значеннями цінність яких оцінює експерт*/
-    SUBJECTIVE;
+    SUBJECTIVE
 }

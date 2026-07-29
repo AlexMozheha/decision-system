@@ -1,8 +1,7 @@
 package com.risk.calculation.service;
 
 
-import com.risk.dto.*;
-import jakarta.transaction.Transactional;
+import com.risk.api.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +37,6 @@ public class CalculationCoordinator {
     }
 
 
-    @Transactional
     private CalculationResponse calculateResponseWithScores(CalculationRequest request) {
 
         final BigDecimal maxScore = request.maxScore();
@@ -47,7 +45,15 @@ public class CalculationCoordinator {
                 .collect(Collectors.toMap(FactorParams::factorId, fp -> fp));
 
 
-        Map<Integer, List<BigDecimal>> rawValuesByFactor = request.getRawValuesGroupedByFactor();
+        Map<Integer, List<BigDecimal>> rawValuesByFactor = request.altCalculationDtos().stream()
+                    .flatMap(alternative -> alternative.values().stream())
+                    .filter(eval -> eval.rawValue() != null)
+                    .collect(Collectors.groupingBy(
+                            EvaluationValue::factorId,
+                            Collectors.mapping(EvaluationValue::rawValue, Collectors.toList())
+                    ));
+
+
         Map<Integer, BigDecimal> meanValues = normalizationService.calculateMeanValues(rawValuesByFactor);
         Map<Integer, BigDecimal> stdDevValues = normalizationService.calculateStandardDeviation(rawValuesByFactor, meanValues);
 
@@ -56,15 +62,13 @@ public class CalculationCoordinator {
         );
 
         Map<Integer, BigDecimal> weightedSums = weightedSumCalculator.calculateWeightedSum(
-                request.alternatives(),
+                request.altCalculationDtos(),
                 normalizedEvaluations,
                 factorParamsMap
         );
 
-        //Map<Integer, BigDecimal> normalizedRisks = normalizationService.normRiskAlt(request);
-
-        Map<Integer, BigDecimal> rawRisks = request.alternatives().stream()
-                .collect(Collectors.toMap(Alternative::alternativeId, Alternative::riskCoefficient));
+        Map<Integer, BigDecimal> rawRisks = request.altCalculationDtos().stream()
+                .collect(Collectors.toMap(AltCalculationDto::alternativeId, AltCalculationDto::riskCoefficient));
 
         // (WS * (1-R))
         Map<Integer, BigDecimal> finalScores = riskAdjustmentCalculator.calculateRiskAdjustment(
@@ -73,35 +77,45 @@ public class CalculationCoordinator {
         );
 
 
-        List<AlternativeResult> results = request.alternatives().stream()
+                List<CalculationAlternativeResult> results = request.altCalculationDtos().stream()
                 .map(alt -> {
                     Integer altId = alt.alternativeId();
                     BigDecimal ws = weightedSums.getOrDefault(altId, BigDecimal.ZERO);
                     BigDecimal finalScore = finalScores.getOrDefault(altId, BigDecimal.ZERO);
                     BigDecimal normRisk = rawRisks.getOrDefault(altId, BigDecimal.ZERO);
 
-                    return new AlternativeResult(
+                    Map<Integer, BigDecimal> factorScores = alt.values().stream()
+                            .collect(Collectors.toMap(
+                                    EvaluationValue::factorId,
+                                    eval -> {
+                                        if (eval.rawValue() == null) {
+                                            return eval.score();
+                                        }
+
+                                        return normalizedEvaluations.stream()
+                                                .filter(normEval -> normEval.factorId() == eval.factorId()
+                                                        && normEval.rawValue().compareTo(eval.rawValue()) == 0)
+                                                .map(EvaluationValue::score)
+                                                .findFirst()
+                                                .orElse(BigDecimal.ZERO);
+                                    },
+                                    (existing, replacement) -> existing
+                            ));
+
+                    return new CalculationAlternativeResult(
                             altId,
                             ws,
                             finalScore,
-                            normRisk
+                            normRisk,
+                            factorScores
                     );
                 })
                 .collect(Collectors.toList());
 
-        return new CalculationResponse(
+                return new CalculationResponse(
                 request.decisionId(),
                 null,
                 results
         );
     }
-
-//    private String determineRiskLevel(BigDecimal normalizedRisk) {
-//        if (normalizedRisk.compareTo(new BigDecimal("0.7")) > 0) {
-//            return "High";
-//        } else if (normalizedRisk.compareTo(new BigDecimal("0.3")) > 0) {
-//            return "Medium";
-//        } else {
-//            return "Low";
-//        }}
 }

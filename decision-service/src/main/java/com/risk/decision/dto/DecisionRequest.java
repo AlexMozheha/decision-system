@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record DecisionRequest (
+        Integer decisionId,
         @NotBlank(message = "Decision name cannot be empty")
         @Size(max = 100, message = "Decision name max 100 characters")
         String decisionName,
@@ -20,7 +21,7 @@ public record DecisionRequest (
 
         @NotNull(message = "Max score cannot be null")
         @DecimalMin(value = "0.0", inclusive = false, message = "Max score must be positive")
-        BigDecimal maxScore, // UInput
+        BigDecimal maxScore,
 
         @NotNull(message = "Factor parameters list cannot be null")
         @Size(min = 1, message = "At least one factor parameter is required")
@@ -30,5 +31,5 @@ public record DecisionRequest (
         @NotNull(message = "Alternatives list cannot be null")
         @Size(min = 1, message = "At least one alternative is required")
         @Valid
-        List<Alternative> alternatives
+        List<AlternativeRequest> alternativeRequests
 ) {}

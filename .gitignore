@@ -10,7 +10,7 @@ out/
 !**/wrapper/maven-wrapper.jar
 
 .vscode/
-.classpathgit
+.classpath
 .project
 .settings/
 /nbproject/
@@ -18,3 +18,5 @@ out/
 
 .DS_Store
 Thumbs.db
+
+.env
