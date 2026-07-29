@@ -16,11 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -33,7 +30,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AdminDashboardService {
 
-    private final DecisionRepository repository;
     private final UserServiceClient userClient;
     private final StatusRepository statusRepository;
     private final DecisionRepository decisionRepository;
@@ -46,9 +42,11 @@ public class AdminDashboardService {
         List<DecisionStatus> statusesForQuery;
         Map<Integer, String> localUserCache = java.util.Collections.emptyMap();
 
-        if (search != null && !search.isBlank()) {
+        String sanitizedSearch = (search != null) ? search.strip() : null;
+
+        if (sanitizedSearch != null && !sanitizedSearch.isEmpty()) {
             try {
-                List<UserResponse> users = userClient.getUserByName(search);
+                List<UserResponse> users = userClient.getUserByName(sanitizedSearch);
                 if (users != null && !users.isEmpty()) {
                     searchedUserIds = users.stream().map(UserResponse::id).toList();
 
@@ -74,7 +72,7 @@ public class AdminDashboardService {
             statusesForQuery = null;
         }
 
-        Page<Decision> decisionPage = repository.findAllScenariosForAdmin(search, statusesForQuery, searchedUserIds, pageable);
+        Page<Decision> decisionPage = decisionRepository.findAllScenariosForAdmin(sanitizedSearch, statusesForQuery, searchedUserIds, pageable);
 
         if (localUserCache.isEmpty()) {
             List<Integer> idsOnCurrentPage = decisionPage.getContent().stream()
@@ -120,7 +118,7 @@ public class AdminDashboardService {
 
     @Transactional
     public void lockScenarioForCalculation(Integer decisionId) {
-        Decision decision = repository.findById(decisionId)
+        Decision decision = decisionRepository.findById(decisionId)
                 .orElseThrow(() -> new EntityNotFoundException("Decision not found"));
 
         if (decision.getStatus().getName() == DecisionStatus.CALCULATED) {
@@ -131,7 +129,7 @@ public class AdminDashboardService {
                 .orElseThrow(() -> new RuntimeException("Status CALCULATING not found"));
 
         decision.setStatus(calculatingStatus);
-        repository.save(decision);
+        decisionRepository.save(decision);
     }
 
 

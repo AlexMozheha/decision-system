@@ -70,6 +70,10 @@
             <groupId>com.risk</groupId>
             <artifactId>common-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.risk</groupId>
+            <artifactId>common-enum</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.postgresql</groupId>

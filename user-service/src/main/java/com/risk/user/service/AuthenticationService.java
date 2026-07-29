@@ -33,15 +33,19 @@ public class AuthenticationService {
         Role userRole = roleRepository.findByName(UserRole.INVESTOR)
                 .orElseThrow(() -> new EntityNotFoundException("Role not found: " + UserRole.INVESTOR.name()));
 
-        if (userRepository.existsByLogin(request.login())) {
+        String sanitizedLogin = request.login() != null ? request.login().strip() : "";
+        String sanitizedEmail = request.email() != null ? request.email().strip() : "";
+        String sanitizedFullName = request.fullName() != null ? request.fullName().strip() : "";
+
+        if (userRepository.existsByLogin(sanitizedLogin)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "LOGIN_TAKEN");
         }
 
         AppUser appUser  = AppUser.builder()
-                .login(request.login())
+                .login(sanitizedLogin)
                 .password(passwordEncoder.encode(request.password()))
-                .fullName(request.fullName())
-                .email(request.email())
+                .fullName(sanitizedFullName)
+                .email(sanitizedEmail)
                 .role(userRole)
                 .build();
 
@@ -54,11 +58,13 @@ public class AuthenticationService {
 
     public AuthResponse authenticate(AuthRequest  request) {
 
+        String sanitizedLogin = request.login() != null ? request.login().strip() : "";
+
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                request.login(), request.password()
+                sanitizedLogin, request.password()
         ));
 
-        AppUser user = userRepository.findByLogin(request.login()).orElseThrow(() -> new EntityNotFoundException("User not found with login: " + request.login()));
+        AppUser user = userRepository.findByLogin(sanitizedLogin).orElseThrow(() -> new EntityNotFoundException("User not found with login: " + sanitizedLogin));
 
         String token = jwtService.generateToken(user.getId(), user.getLogin(), user.getRole().getName().name());
 

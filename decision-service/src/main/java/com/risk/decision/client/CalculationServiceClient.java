@@ -15,8 +15,10 @@ public class CalculationServiceClient {
 
     private final RestClient client;
 
-    public CalculationServiceClient(RestClient.Builder builder, @Value("${app.services.calculation-service-url}") String baseUrl) {
-        this.client = builder.clone().baseUrl(baseUrl).build();
+    public CalculationServiceClient(RestClient.Builder loadBalancedRestClientBuilder) {
+        this.client = loadBalancedRestClientBuilder.clone()
+                .baseUrl("http://calculation-service")
+                .build();
     }
     public CalculationResponse calculate(CalculationRequest request) {
         try {

@@ -24,7 +24,7 @@ public class InvestorDashboardService {
     @Transactional(readOnly = true)
     public Page<InvestorScenarioDto> getInvestorScenarios (Integer userId, String search, Pageable pageable) {
 
-        String searchParam = (search == null) ? "" : search.trim();
+        String searchParam = (search == null) ? "" : search.strip();
 
         Page<Decision> decisionPage = decisionRepository.findMyScenarios(userId, searchParam, pageable);
 

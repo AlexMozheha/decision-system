@@ -7,14 +7,14 @@ spring:
 
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/Decision_IS
-    username: postgres
-    password: 54321
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:Decision_IS}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:54321}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate.format_sql: true
@@ -26,13 +26,12 @@ spring:
 
   cloud:
     consul:
-      host: localhost
-      port: 8500
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
       discovery:
         service-name: decision-service
         register: true
         prefer-ip-address: true
-        ip-address: host.docker.internal
         health-check-path: /actuator/health
         health-check-interval: 10s
         instance-id: ${spring.application.name}:${server.port}:${random.value}
@@ -49,12 +48,9 @@ logging:
     org.hibernate.SQL: DEBUG
 
 app:
-  services:
-    user-service-url: "http://user-service"
-    calculation-service-url: "http://calculation-service"
   security:
     cors:
-      allowed-origins: "http://localhost:5500,http://127.0.0.1:5500"
+      allowed-origins: ${FRONTEND_URL:http://localhost:5500,http://127.0.0.1:5500}
 
 jwt:
   secret: ${JWT_SECRET:YTIzNDU2Nzg5MGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6TUI0NTY3ODkwYmNkZWZnaGlqa2xtbm9wY3JzdHV2dw==}

@@ -25,9 +25,9 @@ public class UserServiceClient {
 
     private final RestClient client;
 
-    public UserServiceClient(RestClient.Builder clientBuilder, @Value("${app.services.user-service-url}") String baseUrl) {
-        this.client = clientBuilder.clone()
-                .baseUrl(baseUrl)
+    public UserServiceClient(RestClient.Builder loadBalancedRestClientBuilder) {
+        this.client = loadBalancedRestClientBuilder.clone()
+                .baseUrl("http://user-service")
                 .requestInterceptor(this::addAuthorizationHeader)
                 .build();
     }

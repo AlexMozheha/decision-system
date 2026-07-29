@@ -19,10 +19,4 @@ public class DecisionServiceApplication {
         SpringApplication.run(DecisionServiceApplication.class, args);
         log.info("Decision Service Application started successfully.");
     }
-
-    @Bean
-    @LoadBalanced
-    public RestClient.Builder loadBalancedRestClientBuilder() {
-        return RestClient.builder();
-    }
 }
